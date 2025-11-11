@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+
 import { getHeaders, getOrigin } from "../utils/request";
 
 export const requestInspection = new Hono();

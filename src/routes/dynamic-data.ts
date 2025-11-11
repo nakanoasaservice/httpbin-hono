@@ -1,4 +1,5 @@
 import { type Context, Hono } from "hono";
+
 import {
 	getHeaders,
 	getOrigin,
@@ -42,7 +43,7 @@ dynamicData.get("/base64/:value", (c) => {
 		const decoded = decodeUrlSafeBase64(value);
 		return c.text(decoded);
 	} catch {
-		return c.text("Incorrect Base64 data try: SFRUUEJJTiBpcyBhd2Vzb21l");
+		return c.text("Incorrect Base64 data try: SFRUUEJJTiBpcyBhd2Vzb21l"); // cspell:disable-line
 	}
 });
 

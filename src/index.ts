@@ -1,5 +1,6 @@
 import { swaggerUI } from "@hono/swagger-ui";
 import { Hono } from "hono";
+
 import { anything } from "./routes/anything";
 import { authentication } from "./routes/authentication";
 import { cookies } from "./routes/cookies";
