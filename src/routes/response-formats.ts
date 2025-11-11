@@ -1,6 +1,8 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
 
+import { getHeaders, getOrigin } from "../utils/request";
+
 export const responseFormats = new Hono<{ Bindings: Cloudflare.Env }>();
 
 async function serveTemplate(
@@ -91,4 +93,49 @@ responseFormats.get("/encoding/utf8", async (c) => {
 		"/templates/UTF-8-demo.txt",
 		"text/html; charset=utf-8",
 	);
+});
+
+// GET /brotli
+// Returns Brotli-encoded data.
+// Cloudflare automatically handles brotli compression when Accept-Encoding: br is present
+responseFormats.get("/brotli", (c) => {
+	const headers = getHeaders(c);
+	const origin = getOrigin(c);
+
+	return c.json({
+		method: c.req.method,
+		headers,
+		origin,
+		brotli: true,
+	});
+});
+
+// GET /deflate
+// Returns Deflate-encoded data.
+// Cloudflare automatically handles deflate compression when Accept-Encoding: deflate is present
+responseFormats.get("/deflate", (c) => {
+	const headers = getHeaders(c);
+	const origin = getOrigin(c);
+
+	return c.json({
+		method: c.req.method,
+		headers,
+		origin,
+		deflated: true,
+	});
+});
+
+// GET /gzip
+// Returns GZip-encoded data.
+// Cloudflare automatically handles gzip compression when Accept-Encoding: gzip is present
+responseFormats.get("/gzip", (c) => {
+	const headers = getHeaders(c);
+	const origin = getOrigin(c);
+
+	return c.json({
+		method: c.req.method,
+		headers,
+		origin,
+		gzipped: true,
+	});
 });
