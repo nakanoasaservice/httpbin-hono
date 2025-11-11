@@ -192,7 +192,7 @@
 				"produces": ["application/json"],
 				"responses": {
 					"200": {
-						"description": "Sucessful authentication."
+						"description": "Successful authentication."
 					},
 					"401": {
 						"description": "Unsuccessful authentication."
@@ -594,7 +594,7 @@
 				"produces": ["application/json"],
 				"responses": {
 					"200": {
-						"description": "Sucessful authentication."
+						"description": "Successful authentication."
 					},
 					"401": {
 						"description": "Unsuccessful authentication."
