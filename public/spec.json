@@ -4,14 +4,12 @@
 	"host": "httpbin-hono.naas.workers.dev",
 	"info": {
 		"contact": {
-			"email": "nakanoasaservice@gmail.com",
-			"responsibleDeveloper": "Nakano as a Service",
-			"responsibleOrganization": "Nakano as a Service",
-			"url": "https://kennethreitz.org"
+			"name": "Nakano as a Service",
+			"url": "https://github.com/nakanoasaservice"
 		},
-		"description": "A simple HTTP Request & Response Service.<br/> <br/> Originally created by Kenneth Reitz (httpbin.org).<br/> Hono implementation by Nakano as a Service (https://github.com/nakanoasaservice).",
-		"title": "httpbin-hono (by Nakano as a Service)",
-		"version": "0.9.2"
+		"description": "A [httpbin](https://httpbin.org/) implementation built with [Hono](https://hono.dev/) and deployed on Cloudflare Workers. <br/> GitHub: [nakanoasaservice/httpbin-hono](https://github.com/nakanoasaservice/httpbin-hono) <br/> <br/> Originally created by [Kenneth Reitz](https://www.kennethreitz.org/).",
+		"title": "httpbin-hono",
+		"version": "0.1.0"
 	},
 	"paths": {
 		"/absolute-redirect/{n}": {

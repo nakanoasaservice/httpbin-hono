@@ -1,4 +1,11 @@
 {
 	"$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
-	"words": ["kennethreitz", "nakano", "postmanlabs", "Reitz", "semiflatten"]
+	"words": [
+		"kennethreitz",
+		"nakano",
+		"nakanoasaservice",
+		"postmanlabs",
+		"Reitz",
+		"semiflatten"
+	]
 }
