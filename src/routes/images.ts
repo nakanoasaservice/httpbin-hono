@@ -1,10 +1,6 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
 
-type CloudflareEnv = {
-	ASSETS: Fetcher;
-};
-
 type ImageFormat = "png" | "jpeg" | "webp" | "svg";
 
 const IMAGE_CONFIG: Record<ImageFormat, { path: string; contentType: string }> =
@@ -27,7 +23,7 @@ const IMAGE_CONFIG: Record<ImageFormat, { path: string; contentType: string }> =
 		},
 	};
 
-export const images = new Hono<{ Bindings: CloudflareEnv }>();
+export const images = new Hono<{ Bindings: Cloudflare.Env }>();
 
 // GET /image
 images.get("/image", async (c) => {
@@ -74,7 +70,7 @@ images.get("/image/svg", async (c) => {
 });
 
 async function serveImage(
-	c: Context<{ Bindings: CloudflareEnv }>,
+	c: Context<{ Bindings: Cloudflare.Env }>,
 	format: ImageFormat,
 ): Promise<Response> {
 	const config = IMAGE_CONFIG[format];

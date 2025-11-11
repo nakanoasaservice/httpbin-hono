@@ -25,20 +25,6 @@ After deployment, your httpbin service will be available at `https://your-worker
 - **💰 Cost-Effective**: Extremely affordable—free for most use cases thanks to Cloudflare Workers' generous free tier
 - **🔧 Portable**: Built with [Hono](https://hono.dev/), making it easy to deploy to other platforms (Node.js, Deno, Bun, etc.) if needed
 
-## Features
-
-- HTTP Methods (GET, POST, PUT, DELETE, PATCH, etc.)
-- Status Codes
-- Request Inspection
-- Response Formats (JSON, XML, HTML, etc.)
-- Response Inspection
-- Authentication
-- Dynamic Data
-- Cookies
-- Redirects
-- Images
-- Swagger UI documentation
-
 ## Prerequisites
 
 - Node.js (v18 or later)

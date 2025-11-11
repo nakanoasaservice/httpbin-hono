@@ -1,14 +1,10 @@
 import type { Context } from "hono";
 import { Hono } from "hono";
 
-type CloudflareEnv = {
-	ASSETS: Fetcher;
-};
-
-export const responseFormats = new Hono<{ Bindings: CloudflareEnv }>();
+export const responseFormats = new Hono<{ Bindings: Cloudflare.Env }>();
 
 async function serveTemplate(
-	c: Context<{ Bindings: CloudflareEnv }>,
+	c: Context<{ Bindings: Cloudflare.Env }>,
 	path: string,
 	contentType: string,
 ): Promise<Response> {
