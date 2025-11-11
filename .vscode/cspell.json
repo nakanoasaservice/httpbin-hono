@@ -2,11 +2,12 @@
 	"$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
 	"words": [
 		"kennethreitz",
+		"naas",
 		"nakano",
 		"nakanoasaservice",
 		"numbytes",
 		"postmanlabs",
-		"Reitz",
+		"reitz",
 		"semiflatten",
 		"webp"
 	]
