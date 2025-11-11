@@ -7,5 +7,9 @@
 	"assets": {
 		"directory": "./public/",
 		"binding": "ASSETS"
+	},
+
+	"placement": {
+		"mode": "smart"
 	}
 }
