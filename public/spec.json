@@ -1,7 +1,7 @@
 {
 	"basePath": "/",
 	"definitions": {},
-	"host": "localhost:8787",
+	"host": "httpbin-hono.naas.workers.dev",
 	"info": {
 		"contact": {
 			"email": "nakanoasaservice@gmail.com",
@@ -1431,7 +1431,7 @@
 		}
 	},
 	"protocol": "https",
-	"schemes": ["http", "https"],
+	"schemes": ["https"],
 	"swagger": "2.0",
 	"tags": [
 		{
