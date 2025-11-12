@@ -5,7 +5,7 @@
 		"moduleResolution": "Bundler",
 		"strict": true,
 		"skipLibCheck": true,
-		"types": ["./worker-configuration.d.ts"],
+		"types": ["./worker-configuration.d.ts", "@cloudflare/vitest-pool-workers"],
 		"lib": ["ESNext"],
 		"jsx": "react-jsx",
 		"jsxImportSource": "hono/jsx"
