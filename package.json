@@ -1,6 +1,7 @@
 {
 	"name": "httpbin-hono",
 	"type": "module",
+	"license": "ISC",
 	"scripts": {
 		"cf-typegen": "wrangler types",
 		"check-types": "tsc --noEmit",

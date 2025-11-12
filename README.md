@@ -91,4 +91,4 @@ Once the server is running, visit the root endpoint (`/`) to access the Swagger 
 
 ## License
 
-MIT
+ISC. See the `LICENSE` file for details. The original httpbin project is © Kenneth Reitz and distributed under the ISC License.
