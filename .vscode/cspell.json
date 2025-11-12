@@ -1,6 +1,7 @@
 {
 	"$schema": "https://raw.githubusercontent.com/streetsidesoftware/cspell/main/cspell.schema.json",
 	"words": [
+		"esbuild",
 		"kennethreitz",
 		"naas",
 		"nakano",
@@ -9,6 +10,7 @@
 		"postmanlabs",
 		"reitz",
 		"semiflatten",
-		"webp"
+		"webp",
+		"workerd"
 	]
 }
