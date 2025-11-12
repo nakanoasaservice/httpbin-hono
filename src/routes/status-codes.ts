@@ -132,7 +132,8 @@ function handleStatusCodes(codes: string) {
 	// Single status code
 	if (!codes.includes(",")) {
 		const code = parseInt(codes, 10);
-		if (Number.isNaN(code)) {
+		// Check if the entire string is a valid number
+		if (Number.isNaN(code) || code.toString() !== codes.trim()) {
 			return { error: "Invalid status code", status: 400 };
 		}
 		return createStatusCodeResponse(code);
@@ -152,8 +153,10 @@ function handleStatusCodes(codes: string) {
 			codeStr = choice;
 		}
 
-		const code = parseInt(codeStr.trim(), 10);
-		if (Number.isNaN(code)) {
+		const trimmedCodeStr = codeStr.trim();
+		const code = parseInt(trimmedCodeStr, 10);
+		// Check if the entire string is a valid number
+		if (Number.isNaN(code) || code.toString() !== trimmedCodeStr) {
 			return { error: "Invalid status code", status: 400 };
 		}
 
