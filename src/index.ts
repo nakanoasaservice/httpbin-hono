@@ -16,6 +16,7 @@ import { default as spec } from "./spec.json";
 import { prettyJSON } from "./utils/pretty-json";
 
 const app = new Hono();
+
 app.use(prettyJSON);
 
 app.get("/spec.json", async (c) => {
@@ -26,10 +27,8 @@ app.get("/spec.json", async (c) => {
 	return c.json(spec);
 });
 
-// Root endpoint
 app.get("/", swaggerUI({ url: "/spec.json" }));
 
-// Register route handlers
 app.route("/", httpMethods);
 app.route("/", statusCodes);
 app.route("/", requestInspection);
