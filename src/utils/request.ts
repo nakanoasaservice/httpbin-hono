@@ -170,55 +170,6 @@ export function jsonSafe(
 }
 
 /**
- * Get raw request body as string or Uint8Array from a Request object
- */
-async function getRawDataFromContext(c: Context): Promise<string | Uint8Array> {
-	try {
-		const arrayBuffer = await c.req.arrayBuffer();
-
-		// Try to decode as UTF-8
-		try {
-			const decoder = new TextDecoder("utf-8", {
-				fatal: false,
-				ignoreBOM: false,
-			});
-			return decoder.decode(arrayBuffer);
-		} catch {
-			return new Uint8Array(arrayBuffer);
-		}
-	} catch {
-		return "";
-	}
-}
-
-/**
- * Parse form data from raw data string
- */
-function parseFormData(
-	rawData: string,
-	contentType: string,
-): Record<string, string | string[]> | null {
-	if (contentType.includes("application/x-www-form-urlencoded")) {
-		const params = new URLSearchParams(rawData);
-		const form: Record<string, string | string[]> = {};
-		params.forEach((value, key) => {
-			const existing = form[key];
-			if (existing) {
-				if (Array.isArray(existing)) {
-					existing.push(value);
-				} else {
-					form[key] = [existing, value];
-				}
-			} else {
-				form[key] = value;
-			}
-		});
-		return semiflatten(form);
-	}
-	return null;
-}
-
-/**
  * Get all request body data (form, files, data, json) efficiently
  * This function handles the request body reading once and returns all needed data
  */
