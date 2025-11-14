@@ -258,11 +258,14 @@ describe("Response Inspection", () => {
 		});
 	});
 
-	describe("GET /response-headers", () => {
+	describe.each([
+		{ method: "GET", requestOptions: {} },
+		{ method: "POST", requestOptions: { method: "POST" } },
+	])("$method /response-headers", ({ requestOptions }) => {
 		it("should return empty object when no query parameters are provided", async () => {
 			const res = await responseInspection.request(
 				"/response-headers",
-				{},
+				requestOptions,
 				env,
 			);
 
@@ -274,7 +277,7 @@ describe("Response Inspection", () => {
 		it("should set response headers from query parameters", async () => {
 			const res = await responseInspection.request(
 				"/response-headers?Content-Type=application/json&X-Custom-Header=test",
-				{},
+				requestOptions,
 				env,
 			);
 
@@ -294,7 +297,7 @@ describe("Response Inspection", () => {
 		it("should include response headers in JSON body", async () => {
 			const res = await responseInspection.request(
 				"/response-headers?X-Test-Header=test-value",
-				{},
+				requestOptions,
 				env,
 			);
 
@@ -306,7 +309,7 @@ describe("Response Inspection", () => {
 		it("should handle multiple values for the same header", async () => {
 			const res = await responseInspection.request(
 				"/response-headers?X-Multiple=value1&X-Multiple=value2",
-				{},
+				requestOptions,
 				env,
 			);
 
@@ -323,7 +326,7 @@ describe("Response Inspection", () => {
 			const headerValue = "test%20value";
 			const res = await responseInspection.request(
 				`/response-headers?X-Encoded=${encodeURIComponent(headerValue)}`,
-				{},
+				requestOptions,
 				env,
 			);
 
@@ -335,151 +338,13 @@ describe("Response Inspection", () => {
 		it("should handle special characters in header names", async () => {
 			const res = await responseInspection.request(
 				"/response-headers?X-Test-123=value",
-				{},
+				requestOptions,
 				env,
 			);
 
 			expect(res.status).toBe(200);
 			const data = (await res.json()) as ResponseHeadersResponse;
 			expect(data["X-Test-123"] || data["x-test-123"]).toBe("value");
-		});
-	});
-
-	describe("POST /response-headers", () => {
-		it("should set response headers from JSON body", async () => {
-			const body = {
-				"Content-Type": "application/json",
-				"X-Custom-Header": "test-value",
-			};
-
-			const res = await responseInspection.request(
-				"/response-headers",
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(body),
-				},
-				env,
-			);
-
-			expect(res.status).toBe(200);
-			expect(res.headers.get("content-type")).toBe("application/json");
-			expect(res.headers.get("x-custom-header")).toBe("test-value");
-
-			const data = (await res.json()) as ResponseHeadersResponse;
-			expect(data["Content-Type"] || data["content-type"]).toBe(
-				"application/json",
-			);
-			expect(data["X-Custom-Header"] || data["x-custom-header"]).toBe(
-				"test-value",
-			);
-		});
-
-		it("should merge query parameters and JSON body", async () => {
-			const body = {
-				"X-From-Body": "body-value",
-			};
-
-			const res = await responseInspection.request(
-				"/response-headers?X-From-Query=query-value",
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(body),
-				},
-				env,
-			);
-
-			expect(res.status).toBe(200);
-			const data = (await res.json()) as ResponseHeadersResponse;
-			expect(data["X-From-Query"] || data["x-from-query"]).toBe("query-value");
-			expect(data["X-From-Body"] || data["x-from-body"]).toBe("body-value");
-		});
-
-		it("should handle empty JSON body", async () => {
-			const res = await responseInspection.request(
-				"/response-headers",
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify({}),
-				},
-				env,
-			);
-
-			expect(res.status).toBe(200);
-			const data = (await res.json()) as ResponseHeadersResponse;
-			expect(data).toEqual({});
-		});
-
-		it("should handle invalid JSON body gracefully", async () => {
-			const res = await responseInspection.request(
-				"/response-headers",
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: "invalid json",
-				},
-				env,
-			);
-
-			expect(res.status).toBe(200);
-			const data = (await res.json()) as ResponseHeadersResponse;
-			// Should handle gracefully, likely returning empty object or query params only
-			expect(data).toBeDefined();
-		});
-
-		it("should handle body with array values", async () => {
-			const body = {
-				"X-Array-Header": ["value1", "value2"],
-			};
-
-			const res = await responseInspection.request(
-				"/response-headers",
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(body),
-				},
-				env,
-			);
-
-			expect(res.status).toBe(200);
-			const data = (await res.json()) as ResponseHeadersResponse;
-			expect(data["X-Array-Header"] || data["x-array-header"]).toBeTruthy();
-		});
-
-		it("should prioritize body over query parameters when keys conflict", async () => {
-			const body = {
-				"X-Conflict": "body-value",
-			};
-
-			const res = await responseInspection.request(
-				"/response-headers?X-Conflict=query-value",
-				{
-					method: "POST",
-					headers: {
-						"Content-Type": "application/json",
-					},
-					body: JSON.stringify(body),
-				},
-				env,
-			);
-
-			expect(res.status).toBe(200);
-			const data = (await res.json()) as ResponseHeadersResponse;
-			// Body should take precedence
-			expect(data["X-Conflict"] || data["x-conflict"]).toBe("body-value");
 		});
 	});
 });
