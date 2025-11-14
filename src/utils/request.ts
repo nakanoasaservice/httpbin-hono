@@ -145,6 +145,22 @@ function jsonSafe(
 }
 
 /**
+ * Parse JSON from ArrayBuffer, returning null if parsing fails
+ */
+function parseJson(rawData: ArrayBuffer): unknown {
+	try {
+		return JSON.parse(
+			new TextDecoder("utf-8", {
+				fatal: true,
+				ignoreBOM: false,
+			}).decode(rawData),
+		);
+	} catch {
+		return null;
+	}
+}
+
+/**
  * Get all request body data (form, files, data, json) efficiently
  * This function handles the request body reading once and returns all needed data
  */
@@ -154,18 +170,17 @@ export async function getRequestBodyData(c: Context): Promise<{
 	data: string;
 	json: unknown;
 }> {
-	const contentType = c.req.header("content-type") || "";
+	const form: Record<string, string | string[]> = {};
+	const files: Record<string, string | string[]> = {};
 
-	// Use parseBody for multipart/form-data
+	const contentType = c.req.header("content-type") || "";
 	if (
+		// is form data or urlencoded data
 		contentType.includes("multipart/form-data") ||
 		contentType.includes("application/x-www-form-urlencoded")
-	) {
+	)
 		try {
-			// Clone request body to get both form/files and data
 			const formData = await c.req.parseBody();
-			const form: Record<string, string | string[]> = {};
-			const files: Record<string, string | string[]> = {};
 
 			for (const [key, value] of Object.entries(formData)) {
 				if (value instanceof File) {
@@ -186,27 +201,6 @@ export async function getRequestBodyData(c: Context): Promise<{
 					form[key] = value as string;
 				}
 			}
-
-			const rawData = await c.req.arrayBuffer();
-			const data = jsonSafe(rawData);
-			let json: unknown = null;
-			try {
-				json = JSON.parse(
-					new TextDecoder("utf-8", {
-						fatal: true,
-						ignoreBOM: false,
-					}).decode(rawData),
-				);
-			} catch {
-				// Set to null if cannot parse as JSON
-			}
-
-			return {
-				form: semiflatten(form),
-				files,
-				data,
-				json,
-			};
 		} catch {
 			return {
 				data: "",
@@ -215,28 +209,13 @@ export async function getRequestBodyData(c: Context): Promise<{
 				json: null,
 			};
 		}
-	}
 
 	const rawData = await c.req.arrayBuffer();
-	const data = jsonSafe(rawData);
-
-	// Parse JSON
-	let json: unknown = null;
-	try {
-		json = JSON.parse(
-			new TextDecoder("utf-8", {
-				fatal: true,
-				ignoreBOM: false,
-			}).decode(rawData),
-		);
-	} catch {
-		// Set to null if cannot parse as JSON
-	}
 
 	return {
-		data,
-		files: {},
-		form: {},
-		json,
+		data: jsonSafe(rawData),
+		files,
+		form: semiflatten(form),
+		json: parseJson(rawData),
 	};
 }
