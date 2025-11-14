@@ -172,11 +172,9 @@ export function jsonSafe(
 /**
  * Get raw request body as string or Uint8Array from a Request object
  */
-async function getRawDataFromRequest(
-	request: Request,
-): Promise<string | Uint8Array> {
+async function getRawDataFromContext(c: Context): Promise<string | Uint8Array> {
 	try {
-		const arrayBuffer = await request.arrayBuffer();
+		const arrayBuffer = await c.req.arrayBuffer();
 		const uint8Array = new Uint8Array(arrayBuffer);
 
 		// Try to decode as UTF-8
@@ -192,13 +190,6 @@ async function getRawDataFromRequest(
 	} catch {
 		return "";
 	}
-}
-
-/**
- * Get raw request body as string or Uint8Array
- */
-export async function getRawData(c: Context): Promise<string | Uint8Array> {
-	return getRawDataFromRequest(c.req.raw);
 }
 
 /**
@@ -244,7 +235,6 @@ export async function getRequestBodyData(c: Context): Promise<{
 	if (contentType.includes("multipart/form-data")) {
 		try {
 			// Clone request body to get both form/files and data
-			const clonedRequest = c.req.raw.clone();
 			const formData = await c.req.parseBody();
 			const form: Record<string, string | string[]> = {};
 			const files: Record<string, string | string[]> = {};
@@ -272,7 +262,7 @@ export async function getRequestBodyData(c: Context): Promise<{
 			}
 
 			// Get raw data from cloned request
-			const rawData = await getRawDataFromRequest(clonedRequest);
+			const rawData = await getRawDataFromContext(c);
 			const data = jsonSafe(rawData);
 			let json: unknown = null;
 			if (typeof rawData === "string") {
@@ -300,7 +290,7 @@ export async function getRequestBodyData(c: Context): Promise<{
 	}
 
 	// Use getRawData for other cases
-	const rawData = await getRawData(c);
+	const rawData = await getRawDataFromContext(c);
 	const data = jsonSafe(rawData);
 
 	// Parse form data
