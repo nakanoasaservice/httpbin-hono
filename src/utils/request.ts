@@ -175,7 +175,6 @@ export function jsonSafe(
 async function getRawDataFromContext(c: Context): Promise<string | Uint8Array> {
 	try {
 		const arrayBuffer = await c.req.arrayBuffer();
-		const uint8Array = new Uint8Array(arrayBuffer);
 
 		// Try to decode as UTF-8
 		try {
@@ -183,9 +182,9 @@ async function getRawDataFromContext(c: Context): Promise<string | Uint8Array> {
 				fatal: false,
 				ignoreBOM: false,
 			});
-			return decoder.decode(uint8Array);
+			return decoder.decode(arrayBuffer);
 		} catch {
-			return uint8Array;
+			return new Uint8Array(arrayBuffer);
 		}
 	} catch {
 		return "";
@@ -261,16 +260,18 @@ export async function getRequestBodyData(c: Context): Promise<{
 				}
 			}
 
-			// Get raw data from cloned request
-			const rawData = await getRawDataFromContext(c);
+			const rawData = await c.req.arrayBuffer();
 			const data = jsonSafe(rawData);
 			let json: unknown = null;
-			if (typeof rawData === "string") {
-				try {
-					json = JSON.parse(rawData);
-				} catch {
-					// Set to null if cannot parse as JSON
-				}
+			try {
+				json = JSON.parse(
+					new TextDecoder("utf-8", {
+						fatal: true,
+						ignoreBOM: false,
+					}).decode(rawData),
+				);
+			} catch {
+				// Set to null if cannot parse as JSON
 			}
 
 			return {
