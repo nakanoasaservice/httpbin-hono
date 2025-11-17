@@ -10,26 +10,26 @@ importers:
     dependencies:
       '@hono/swagger-ui':
         specifier: ^0.5.2
-        version: 0.5.2(hono@4.10.5)
+        version: 0.5.2(hono@4.10.6)
       hono:
-        specifier: ^4.10.5
-        version: 4.10.5
+        specifier: ^4.10.6
+        version: 4.10.6
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.3.5
         version: 2.3.5
       '@cloudflare/vitest-pool-workers':
         specifier: ^0.10.7
-        version: 0.10.7(@cloudflare/workers-types@4.20251113.0)(@vitest/runner@4.0.8)(@vitest/snapshot@4.0.8)(vitest@3.2.4)
+        version: 0.10.7(@cloudflare/workers-types@4.20251115.0)(@vitest/runner@4.0.8)(@vitest/snapshot@4.0.8)(vitest@3.2.4)
       '@cloudflare/workers-types':
-        specifier: ^4.20251113.0
-        version: 4.20251113.0
+        specifier: ^4.20251115.0
+        version: 4.20251115.0
       vitest:
         specifier: ~3.2.4
         version: 3.2.4
       wrangler:
         specifier: ^4.48.0
-        version: 4.48.0(@cloudflare/workers-types@4.20251113.0)
+        version: 4.48.0(@cloudflare/workers-types@4.20251115.0)
 
 packages:
 
@@ -136,8 +136,8 @@ packages:
     cpu: [x64]
     os: [win32]
 
-  '@cloudflare/workers-types@4.20251113.0':
-    resolution: {integrity: sha512-AMntYysoQzuc1aXLjkNLmFcuyxzCrZ/dfatnt2Lw4rf3aFtnM6RZKZ+zLhb+xjgjlrI7tzC86ay3gqYqKa2Qxg==}
+  '@cloudflare/workers-types@4.20251115.0':
+    resolution: {integrity: sha512-aM7jp7IfKhqKvfSaK1IhVTbSzxB6KQ4gX8e/W29tOuZk+YHlYXuRd/bMm4hWkfd7B1HWNWdsx1GTaEUoZIuVsw==}
 
   '@cspotcode/source-map-support@0.8.1':
     resolution: {integrity: sha512-IchNf6dN4tHoMFIn/7OE8LWZ19Y6q/67Bmf6vnGREv8RSbBVb9LPJxEcnwrcwX6ixSvaiGoomAUvu4YSxXrVgw==}
@@ -864,8 +864,8 @@ packages:
   glob-to-regexp@0.4.1:
     resolution: {integrity: sha512-lkX1HJXwyMcprw/5YUZc2s7DrpAiHB21/V+E1rHUrVNokkvB6bqMzT0VfV6/86ZNabt1k14YOIaT7nDvOX3Iiw==}
 
-  hono@4.10.5:
-    resolution: {integrity: sha512-h/MXuTkoAK8NG1EfDp0jI1YLf6yGdDnfkebRO2pwEh5+hE3RAJFXkCsnD0vamSiARK4ZrB6MY+o3E/hCnOyHrQ==}
+  hono@4.10.6:
+    resolution: {integrity: sha512-BIdolzGpDO9MQ4nu3AUuDwHZZ+KViNm+EZ75Ae55eMXMqLVhDFqEMXxtUe9Qh8hjL+pIna/frs2j6Y2yD5Ua/g==}
     engines: {node: '>=16.9.0'}
 
   is-arrayish@0.3.4:
@@ -1086,6 +1086,7 @@ packages:
   wrangler@4.48.0:
     resolution: {integrity: sha512-qkcwysx96XNDWXl4w/5VjAZjqWatxAq9chMXVeqv/etL9e06ouPaZ+Hwwbe5XYV2GYf/XhZVZ3fHJcTBrq60gQ==}
     engines: {node: '>=18.0.0'}
+    deprecated: Unexpected API fields cause wrangler deploy to crash in some code paths. Downgrade to wrangler@4.47
     hasBin: true
     peerDependencies:
       '@cloudflare/workers-types': ^4.20251109.0
@@ -1164,7 +1165,7 @@ snapshots:
     optionalDependencies:
       workerd: 1.20251109.0
 
-  '@cloudflare/vitest-pool-workers@0.10.7(@cloudflare/workers-types@4.20251113.0)(@vitest/runner@4.0.8)(@vitest/snapshot@4.0.8)(vitest@3.2.4)':
+  '@cloudflare/vitest-pool-workers@0.10.7(@cloudflare/workers-types@4.20251115.0)(@vitest/runner@4.0.8)(@vitest/snapshot@4.0.8)(vitest@3.2.4)':
     dependencies:
       '@vitest/runner': 4.0.8
       '@vitest/snapshot': 4.0.8
@@ -1174,7 +1175,7 @@ snapshots:
       miniflare: 4.20251109.1
       semver: 7.7.3
       vitest: 3.2.4
-      wrangler: 4.48.0(@cloudflare/workers-types@4.20251113.0)
+      wrangler: 4.48.0(@cloudflare/workers-types@4.20251115.0)
       zod: 3.25.76
     transitivePeerDependencies:
       - '@cloudflare/workers-types'
@@ -1196,7 +1197,7 @@ snapshots:
   '@cloudflare/workerd-windows-64@1.20251109.0':
     optional: true
 
-  '@cloudflare/workers-types@4.20251113.0': {}
+  '@cloudflare/workers-types@4.20251115.0': {}
 
   '@cspotcode/source-map-support@0.8.1':
     dependencies:
@@ -1360,9 +1361,9 @@ snapshots:
   '@esbuild/win32-x64@0.25.4':
     optional: true
 
-  '@hono/swagger-ui@0.5.2(hono@4.10.5)':
+  '@hono/swagger-ui@0.5.2(hono@4.10.6)':
     dependencies:
-      hono: 4.10.5
+      hono: 4.10.6
 
   '@img/sharp-darwin-arm64@0.33.5':
     optionalDependencies:
@@ -1731,7 +1732,7 @@ snapshots:
 
   glob-to-regexp@0.4.1: {}
 
-  hono@4.10.5: {}
+  hono@4.10.6: {}
 
   is-arrayish@0.3.4: {}
 
@@ -1971,7 +1972,7 @@ snapshots:
       '@cloudflare/workerd-linux-arm64': 1.20251109.0
       '@cloudflare/workerd-windows-64': 1.20251109.0
 
-  wrangler@4.48.0(@cloudflare/workers-types@4.20251113.0):
+  wrangler@4.48.0(@cloudflare/workers-types@4.20251115.0):
     dependencies:
       '@cloudflare/kv-asset-handler': 0.4.0
       '@cloudflare/unenv-preset': 2.7.10(unenv@2.0.0-rc.24)(workerd@1.20251109.0)
@@ -1982,7 +1983,7 @@ snapshots:
       unenv: 2.0.0-rc.24
       workerd: 1.20251109.0
     optionalDependencies:
-      '@cloudflare/workers-types': 4.20251113.0
+      '@cloudflare/workers-types': 4.20251115.0
       fsevents: 2.3.3
     transitivePeerDependencies:
       - bufferutil
