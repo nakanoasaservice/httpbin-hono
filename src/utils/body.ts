@@ -48,14 +48,14 @@ function parseJson(rawData: ArrayBuffer): unknown {
 }
 
 /**
- * Append a value to a multi-value dictionary
+ * Add a value to a multi-value dictionary
  * If the key already exists, the value is appended to the array
  * If the key does not exist, the value is set to the key
  * @param multi - The multi-value dictionary
- * @param key - The key to append the value to
- * @param value - The value to append to the key
+ * @param key - The key to add the value to
+ * @param value - The value to add to the key
  */
-function semiflattenAppend(
+function semiflattenAdd(
 	multi: Record<string, string | string[]>,
 	key: string,
 	value: string,
@@ -101,9 +101,9 @@ export async function getRequestBodyData(c: Context): Promise<{
 							const arrayBuffer = await item.arrayBuffer();
 							const jsonSafeValue = jsonSafe(arrayBuffer, item.type);
 
-							semiflattenAppend(files, key, jsonSafeValue);
+							semiflattenAdd(files, key, jsonSafeValue);
 						} else {
-							semiflattenAppend(form, key, item);
+							semiflattenAdd(form, key, item);
 						}
 					}
 				} else if (value instanceof File) {
