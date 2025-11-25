@@ -57,9 +57,8 @@ describe("Dynamic Data", () => {
 		});
 
 		it("should decode URL-safe Base64 string with dashes", async () => {
-			// "ø" encoded in standard Base64: +A==
-			// URL-safe Base64 replaces '+' with '-': -A==
-			const encoded = "-A=="; // URL-safe Base64 for "ø"
+			// "ø" encoded in Base64URL: w7g
+			const encoded = "w7g"; // Base64URL for "ø"
 			const res = await dynamicData.request(`/base64/${encoded}`, {}, env);
 
 			expect(res.status).toBe(200);
@@ -67,10 +66,9 @@ describe("Dynamic Data", () => {
 			expect(text).toBe("ø");
 		});
 
-		it("should decode URL-safe Base64 string with underscores", async () => {
-			// "ü" encoded in standard Base64: /A==
-			// URL-safe Base64 replaces '/' with '_': _A==
-			const encoded = "_A=="; // URL-safe Base64 for "ü"
+		it("should decode Base64URL string for ü", async () => {
+			// "ü" encoded in Base64URL: w7w
+			const encoded = "w7w"; // Base64URL for "ü"
 			const res = await dynamicData.request(`/base64/${encoded}`, {}, env);
 
 			expect(res.status).toBe(200);

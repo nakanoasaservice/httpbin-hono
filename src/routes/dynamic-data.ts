@@ -1,5 +1,6 @@
 import { Hono } from "hono";
 
+import { stringFromBase64URL } from "../utils/base64url";
 import { getRequestBodyData } from "../utils/body";
 import { getHeaders, getOrigin } from "../utils/headers";
 import { getQueryParams } from "../utils/query";
@@ -10,34 +11,15 @@ export const dynamicData = new Hono();
 dynamicData.get("/uuid", (c) => {
 	const uuid = crypto.randomUUID();
 
-	return c.json({
-		uuid: uuid,
-	});
+	return c.json({ uuid });
 });
-
-/**
- * Decode URL-safe Base64 string
- * URL-safe Base64 uses '-' and '_' instead of '+' and '/'
- */
-function decodeUrlSafeBase64(value: string): string {
-	// Convert URL-safe Base64 to standard Base64
-	const standardBase64 = value.replace(/-/g, "+").replace(/_/g, "/");
-
-	// Add padding if necessary
-	const padding = standardBase64.length % 4;
-	const paddedBase64 = padding
-		? standardBase64 + "=".repeat(4 - padding)
-		: standardBase64;
-
-	return atob(paddedBase64);
-}
 
 // GET /base64/:value
 dynamicData.get("/base64/:value", (c) => {
 	const value = c.req.param("value");
 
 	try {
-		const decoded = decodeUrlSafeBase64(value);
+		const decoded = stringFromBase64URL(value);
 		return c.text(decoded);
 	} catch {
 		return c.text("Incorrect Base64 data try: SFRUUEJJTiBpcyBhd2Vzb21l"); // cspell:disable-line
