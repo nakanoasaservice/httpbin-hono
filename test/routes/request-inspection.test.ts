@@ -91,9 +91,7 @@ describe("Request Inspection", () => {
 
 			expect(res.status).toBe(200);
 			const data = (await res.json()) as HeadersResponse;
-			expect(data.headers).toBeDefined();
-			// Headers object should exist but may contain some default headers
-			expect(typeof data.headers).toBe("object");
+			expect(data.headers).toEqual({});
 		});
 	});
 
