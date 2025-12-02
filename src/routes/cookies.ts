@@ -24,26 +24,6 @@ const ENV_COOKIES = [
  * Reference: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py
  */
 function secureCookie(c: Context): boolean {
-	// Check X-Forwarded-Proto header first (common in proxy environments)
-	const forwardedProto = c.req.header("x-forwarded-proto");
-	if (forwardedProto === "https") {
-		return true;
-	}
-
-	// Check CF-Visitor header (Cloudflare specific)
-	const cfVisitor = c.req.header("cf-visitor");
-	if (cfVisitor) {
-		try {
-			const visitor = JSON.parse(cfVisitor);
-			if (visitor.scheme === "https") {
-				return true;
-			}
-		} catch {
-			// Ignore JSON parse errors
-		}
-	}
-
-	// Check URL protocol as fallback
 	try {
 		const url = new URL(c.req.url);
 		return url.protocol === "https:";

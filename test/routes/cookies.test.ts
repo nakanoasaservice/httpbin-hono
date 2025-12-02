@@ -187,21 +187,15 @@ describe("Cookies", () => {
 			expect(data.cookies["email"]).toBe("test@example.com");
 		});
 
-		it("should set cookie with secure flag when using HTTPS", async () => {
-			const res = await cookies.request(
-				"/cookies/set?foo=bar",
-				{
-					headers: {
-						"X-Forwarded-Proto": "https",
-					},
-				},
-				env,
-			);
+		it("should set cookie without secure flag for HTTP requests", async () => {
+			const res = await cookies.request("/cookies/set?foo=bar", {}, env);
 
 			expect(res.status).toBe(302);
 			const setCookieHeaders = res.headers.getSetCookie();
 			expect(setCookieHeaders.length).toBeGreaterThan(0);
-			expect(setCookieHeaders[0]).toContain("Secure");
+			// In test environment, URL is likely http://, so Secure should not be set
+			expect(setCookieHeaders[0]).not.toContain("Secure");
+			expect(setCookieHeaders[0]).toContain("foo=bar");
 		});
 
 		it("should set cookie with SameSite=Lax attribute", async () => {
@@ -292,21 +286,15 @@ describe("Cookies", () => {
 			expect(res.headers.get("location")).toBe("/cookies");
 		});
 
-		it("should set cookie with secure flag when using HTTPS", async () => {
-			const res = await cookies.request(
-				"/cookies/set/foo/bar",
-				{
-					headers: {
-						"X-Forwarded-Proto": "https",
-					},
-				},
-				env,
-			);
+		it("should set cookie without secure flag for HTTP requests", async () => {
+			const res = await cookies.request("/cookies/set/foo/bar", {}, env);
 
 			expect(res.status).toBe(302);
 			const setCookieHeaders = res.headers.getSetCookie();
 			expect(setCookieHeaders.length).toBeGreaterThan(0);
-			expect(setCookieHeaders[0]).toContain("Secure");
+			// In test environment, URL is likely http://, so Secure should not be set
+			expect(setCookieHeaders[0]).not.toContain("Secure");
+			expect(setCookieHeaders[0]).toContain("foo=bar");
 		});
 
 		it("should set cookie with SameSite=Lax attribute", async () => {
@@ -365,21 +353,14 @@ describe("Cookies", () => {
 			expect(setCookieHeaders[0]).toContain("Max-Age=0");
 		});
 
-		it("should delete cookie with secure flag when using HTTPS", async () => {
-			const res = await cookies.request(
-				"/cookies/delete?foo",
-				{
-					headers: {
-						"X-Forwarded-Proto": "https",
-					},
-				},
-				env,
-			);
+		it("should delete cookie without secure flag for HTTP requests", async () => {
+			const res = await cookies.request("/cookies/delete?foo", {}, env);
 
 			expect(res.status).toBe(302);
 			const setCookieHeaders = res.headers.getSetCookie();
 			expect(setCookieHeaders.length).toBeGreaterThan(0);
-			expect(setCookieHeaders[0]).toContain("Secure");
+			// In test environment, URL is likely http://, so Secure should not be set
+			expect(setCookieHeaders[0]).not.toContain("Secure");
 			expect(setCookieHeaders[0]).toContain("Max-Age=0");
 		});
 
@@ -405,38 +386,16 @@ describe("Cookies", () => {
 	});
 
 	describe("Secure cookie detection", () => {
-		it("should detect HTTPS from X-Forwarded-Proto header", async () => {
-			const res = await cookies.request(
-				"/cookies/set/foo/bar",
-				{
-					headers: {
-						"X-Forwarded-Proto": "https",
-					},
-				},
-				env,
-			);
+		it("should detect HTTPS from URL protocol", async () => {
+			// Test with HTTPS URL by creating a Request with HTTPS URL
+			const httpsRequest = new Request("https://example.com/cookies/set/foo/bar");
+			const res = await cookies.fetch(httpsRequest, env);
 
 			expect(res.status).toBe(302);
 			const setCookieHeaders = res.headers.getSetCookie();
 			expect(setCookieHeaders.length).toBeGreaterThan(0);
 			expect(setCookieHeaders[0]).toContain("Secure");
-		});
-
-		it("should detect HTTPS from CF-Visitor header", async () => {
-			const res = await cookies.request(
-				"/cookies/set/foo/bar",
-				{
-					headers: {
-						"CF-Visitor": '{"scheme":"https"}',
-					},
-				},
-				env,
-			);
-
-			expect(res.status).toBe(302);
-			const setCookieHeaders = res.headers.getSetCookie();
-			expect(setCookieHeaders.length).toBeGreaterThan(0);
-			expect(setCookieHeaders[0]).toContain("Secure");
+			expect(setCookieHeaders[0]).toContain("foo=bar");
 		});
 
 		it("should not set secure flag for HTTP requests", async () => {
@@ -446,7 +405,7 @@ describe("Cookies", () => {
 			const setCookieHeaders = res.headers.getSetCookie();
 			expect(setCookieHeaders.length).toBeGreaterThan(0);
 			// In test environment, URL is likely http://, so Secure should not be set
-			// But we check that the cookie is set correctly
+			expect(setCookieHeaders[0]).not.toContain("Secure");
 			expect(setCookieHeaders[0]).toContain("foo=bar");
 		});
 	});
