@@ -8,9 +8,6 @@ importers:
 
   .:
     dependencies:
-      '@hono/swagger-ui':
-        specifier: ^0.5.2
-        version: 0.5.2(hono@4.10.7)
       hono:
         specifier: ^4.10.7
         version: 4.10.7
@@ -445,11 +442,6 @@ packages:
     engines: {node: '>=18'}
     cpu: [x64]
     os: [win32]
-
-  '@hono/swagger-ui@0.5.2':
-    resolution: {integrity: sha512-7wxLKdb8h7JTdZ+K8DJNE3KXQMIpJejkBTQjrYlUWF28Z1PGOKw6kUykARe5NTfueIN37jbyG/sBYsbzXzG53A==}
-    peerDependencies:
-      hono: '*'
 
   '@img/sharp-darwin-arm64@0.33.5':
     resolution: {integrity: sha512-UT4p+iz/2H4twwAoLCqfA9UH5pI6DggwKEGuaPy7nCVQ8ZsiY5PIcrRvD1DzuY3qYL07NtIQcWnBSY/heikIFQ==}
@@ -1351,10 +1343,6 @@ snapshots:
 
   '@esbuild/win32-x64@0.25.4':
     optional: true
-
-  '@hono/swagger-ui@0.5.2(hono@4.10.7)':
-    dependencies:
-      hono: 4.10.7
 
   '@img/sharp-darwin-arm64@0.33.5':
     optionalDependencies:
