@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 
 import { getRequestBodyData } from "../utils/body";
 import { getHeaders, getOrigin } from "../utils/headers";
@@ -21,8 +21,7 @@ httpMethods.get("/get", async (c) => {
 	});
 });
 
-// POST /post
-httpMethods.post("/post", async (c) => {
+async function handleRequest(c: Context) {
 	const args = getQueryParams(c);
 	const { form, files, data, json } = await getRequestBodyData(c);
 	const origin = getOrigin(c);
@@ -39,64 +38,16 @@ httpMethods.post("/post", async (c) => {
 		origin,
 		url,
 	});
-});
+}
+
+// POST /post
+httpMethods.post("/post", handleRequest);
 
 // PUT /put
-httpMethods.put("/put", async (c) => {
-	const args = getQueryParams(c);
-	const { form, files, data, json } = await getRequestBodyData(c);
-	const origin = getOrigin(c);
-	const headers = getHeaders(c);
-	const url = c.req.url;
-
-	return c.json({
-		args,
-		data,
-		files,
-		form,
-		headers,
-		json,
-		origin,
-		url,
-	});
-});
+httpMethods.put("/put", handleRequest);
 
 // PATCH /patch
-httpMethods.patch("/patch", async (c) => {
-	const args = getQueryParams(c);
-	const { form, files, data, json } = await getRequestBodyData(c);
-	const origin = getOrigin(c);
-	const headers = getHeaders(c);
-	const url = c.req.url;
-
-	return c.json({
-		args,
-		data,
-		files,
-		form,
-		headers,
-		json,
-		origin,
-		url,
-	});
-});
+httpMethods.patch("/patch", handleRequest);
 
 // DELETE /delete
-httpMethods.delete("/delete", async (c) => {
-	const args = getQueryParams(c);
-	const { form, files, data, json } = await getRequestBodyData(c);
-	const origin = getOrigin(c);
-	const headers = getHeaders(c);
-	const url = c.req.url;
-
-	return c.json({
-		args,
-		data,
-		files,
-		form,
-		headers,
-		json,
-		origin,
-		url,
-	});
-});
+httpMethods.delete("/delete", handleRequest);
