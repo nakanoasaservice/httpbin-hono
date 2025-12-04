@@ -24,10 +24,21 @@ app.get("/spec.json", async (c) => {
 	spec.schemes =
 		new URL(c.req.url).protocol === "https:" ? ["https"] : ["http"];
 
-	return c.json(spec);
+	return c.json(spec, {
+		headers: {
+			"Cache-Control": "public, max-age=86400",
+		},
+	});
 });
 
-app.get("/", swaggerUI({ url: "/spec.json" }));
+app.get(
+	"/",
+	async (c, next) => {
+		await next();
+		c.header("Cache-Control", "public, max-age=86400, immutable");
+	},
+	swaggerUI({ url: "/spec.json" }),
+);
 
 app.route("/", httpMethods);
 app.route("/", statusCodes);
