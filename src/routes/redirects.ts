@@ -20,7 +20,8 @@ function buildAbsoluteUrl(c: Context, path: string): string {
 	return `${url.protocol}//${url.host}${path}`;
 }
 
-// GET /redirect/:n
+// redirect_n_times
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L538
 redirects.get("/redirect/:n", (c) => {
 	const n = parseInt(c.req.param("n"), 10);
 
@@ -45,7 +46,34 @@ redirects.get("/redirect/:n", (c) => {
 	}
 });
 
-// GET /relative-redirect/:n
+// redirect_to
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L573
+redirects.on(
+	["GET", "POST", "PUT", "DELETE", "PATCH", "TRACE"],
+	"/redirect-to",
+	(c) => {
+		const args = toLowerKeys(c.req.query());
+		const url = args["url"];
+
+		if (!url) {
+			return c.json({ error: "Missing url parameter" }, 400);
+		}
+
+		let statusCode = 302;
+		const statusCodeStr = args["status_code"];
+		if (statusCodeStr) {
+			const parsed = parseInt(statusCodeStr, 10);
+			if (parsed >= 300 && parsed < 400) {
+				statusCode = parsed;
+			}
+		}
+
+		return c.redirect(url, statusCode as RedirectStatusCode);
+	},
+);
+
+// relative_redirect_n_times
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L648
 redirects.get("/relative-redirect/:n", (c) => {
 	const n = parseInt(c.req.param("n"), 10);
 
@@ -60,7 +88,8 @@ redirects.get("/relative-redirect/:n", (c) => {
 	return c.redirect(`/relative-redirect/${n - 1}`, 302);
 });
 
-// GET /absolute-redirect/:n
+// absolute_redirect_n_times
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L678
 redirects.get("/absolute-redirect/:n", (c) => {
 	const n = parseInt(c.req.param("n"), 10);
 
@@ -74,32 +103,3 @@ redirects.get("/absolute-redirect/:n", (c) => {
 
 	return c.redirect(buildAbsoluteUrl(c, `/absolute-redirect/${n - 1}`), 302);
 });
-
-/**
- * Handle /redirect-to for all supported methods
- */
-async function handleRedirectTo(c: Context) {
-	const args = toLowerKeys(c.req.query());
-	const url = args["url"];
-
-	if (!url) {
-		return c.json({ error: "Missing url parameter" }, 400);
-	}
-
-	let statusCode = 302;
-	const statusCodeStr = args["status_code"];
-	if (statusCodeStr) {
-		const parsed = parseInt(statusCodeStr, 10);
-		if (parsed >= 300 && parsed < 400) {
-			statusCode = parsed;
-		}
-	}
-
-	return c.redirect(url, statusCode as RedirectStatusCode);
-}
-
-redirects.on(
-	["GET", "POST", "PUT", "DELETE", "PATCH", "TRACE"],
-	"/redirect-to",
-	handleRedirectTo,
-);
