@@ -25,7 +25,7 @@ app.get("/spec.json", async (c) => {
 
 	return c.json(spec, {
 		headers: {
-			"Cache-Control": "public, max-age=86400",
+			"Cache-Control": "public, max-age=604800",
 		},
 	});
 });
