@@ -98,20 +98,8 @@ async function handleRedirectTo(c: Context) {
 	return c.redirect(url, statusCode as RedirectStatusCode);
 }
 
-// GET /redirect-to
-redirects.get("/redirect-to", handleRedirectTo);
-
-// POST /redirect-to
-redirects.post("/redirect-to", handleRedirectTo);
-
-// PUT /redirect-to
-redirects.put("/redirect-to", handleRedirectTo);
-
-// DELETE /redirect-to
-redirects.delete("/redirect-to", handleRedirectTo);
-
-// PATCH /redirect-to
-redirects.patch("/redirect-to", handleRedirectTo);
-
-// TRACE /redirect-to
-redirects.on("TRACE", "/redirect-to", handleRedirectTo);
+redirects.on(
+	["GET", "POST", "PUT", "DELETE", "PATCH", "TRACE"],
+	"/redirect-to",
+	handleRedirectTo,
+);
