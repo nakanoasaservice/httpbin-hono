@@ -1,4 +1,3 @@
-import { swaggerUI } from "@hono/swagger-ui";
 import { Hono } from "hono";
 
 import { anything } from "./routes/anything";
@@ -24,10 +23,12 @@ app.get("/spec.json", async (c) => {
 	spec.schemes =
 		new URL(c.req.url).protocol === "https:" ? ["https"] : ["http"];
 
-	return c.json(spec);
+	return c.json(spec, {
+		headers: {
+			"Cache-Control": "public, max-age=604800",
+		},
+	});
 });
-
-app.get("/", swaggerUI({ url: "/spec.json" }));
 
 app.route("/", httpMethods);
 app.route("/", statusCodes);

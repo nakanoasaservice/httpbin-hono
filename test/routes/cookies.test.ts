@@ -388,7 +388,9 @@ describe("Cookies", () => {
 	describe("Secure cookie detection", () => {
 		it("should detect HTTPS from URL protocol", async () => {
 			// Test with HTTPS URL by creating a Request with HTTPS URL
-			const httpsRequest = new Request("https://example.com/cookies/set/foo/bar");
+			const httpsRequest = new Request(
+				"https://example.com/cookies/set/foo/bar",
+			);
 			const res = await cookies.fetch(httpsRequest, env);
 
 			expect(res.status).toBe(302);

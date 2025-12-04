@@ -12,7 +12,6 @@
 		"test": "vitest"
 	},
 	"dependencies": {
-		"@hono/swagger-ui": "^0.5.2",
 		"hono": "^4.10.7"
 	},
 	"devDependencies": {
