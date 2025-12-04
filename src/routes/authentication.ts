@@ -176,7 +176,8 @@ async function checkDigestAuth(
 	return response === authParams["response"];
 }
 
-// GET /basic-auth/:user/:passwd
+// basic_auth
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L945
 authentication.get("/basic-auth/:user/:passwd", async (c) => {
 	const user = c.req.param("user");
 	const passwd = c.req.param("passwd");
@@ -204,7 +205,8 @@ authentication.get("/basic-auth/:user/:passwd", async (c) => {
 	});
 });
 
-// GET /bearer
+// bearer_auth
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1000
 authentication.get("/bearer", (c) => {
 	const authHeader = c.req.header("authorization");
 
@@ -220,7 +222,8 @@ authentication.get("/bearer", (c) => {
 	});
 });
 
-// GET /digest-auth/:qop/:user/:passwd
+// digest_auth_md5
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1031
 authentication.get("/digest-auth/:qop/:user/:passwd", async (c) => {
 	const qop = c.req.param("qop");
 	const user = c.req.param("user");
@@ -273,7 +276,8 @@ authentication.get("/digest-auth/:qop/:user/:passwd", async (c) => {
 	});
 });
 
-// GET /digest-auth/:qop/:user/:passwd/:algorithm
+// digest_auth_nostale
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1059
 authentication.get("/digest-auth/:qop/:user/:passwd/:algorithm", async (c) => {
 	const qop = c.req.param("qop");
 	const user = c.req.param("user");
@@ -336,7 +340,8 @@ authentication.get("/digest-auth/:qop/:user/:passwd/:algorithm", async (c) => {
 	});
 });
 
-// GET /digest-auth/:qop/:user/:passwd/:algorithm/:stale_after
+// digest_auth
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1092
 authentication.get(
 	"/digest-auth/:qop/:user/:passwd/:algorithm/:stale_after",
 	async (c) => {

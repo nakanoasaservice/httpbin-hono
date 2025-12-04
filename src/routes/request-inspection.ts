@@ -4,8 +4,7 @@ import { getHeaders, getOrigin } from "../utils/headers";
 
 export const requestInspection = new Hono();
 
-// GET /ip
-// Returns the requester's IP Address.
+// view_origin
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L303
 requestInspection.get("/ip", (c) => {
 	const origin = getOrigin(c);
@@ -15,7 +14,7 @@ requestInspection.get("/ip", (c) => {
 	});
 });
 
-// GET /headers
+// view_headers
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L333
 requestInspection.get("/headers", (c) => {
 	const headers = getHeaders(c);
@@ -25,8 +24,7 @@ requestInspection.get("/headers", (c) => {
 	});
 });
 
-// GET /user-agent
-// Return the incoming requests's User-Agent header.
+// view_user_agent
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L349
 requestInspection.get("/user-agent", (c) => {
 	const userAgent = c.req.header("user-agent");

@@ -6,7 +6,8 @@ import { getQueryParams } from "../utils/query";
 
 export const httpMethods = new Hono();
 
-// GET /get
+// view_get
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L367
 httpMethods.get("/get", async (c) => {
 	const args = getQueryParams(c);
 	const headers = getHeaders(c);
@@ -40,14 +41,18 @@ async function handleRequest(c: Context) {
 	});
 }
 
-// POST /post
+// view_post
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L415
 httpMethods.post("/post", handleRequest);
 
-// PUT /put
+// view_put
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L433
 httpMethods.put("/put", handleRequest);
 
-// PATCH /patch
+// view_patch
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L451
 httpMethods.patch("/patch", handleRequest);
 
-// DELETE /delete
+// view_delete
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L469
 httpMethods.delete("/delete", handleRequest);

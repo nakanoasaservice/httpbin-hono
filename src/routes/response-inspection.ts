@@ -6,9 +6,8 @@ import { getQueryParams } from "../utils/query";
 export const responseInspection = new Hono();
 
 /**
- * Parse a multi-value HTTP header string (e.g., ETag headers)
- * Breaks apart an HTTP header string that is potentially a quoted, comma separated list
- * as used in entity headers in RFC2616.
+ * Break apart an HTTP header string that is potentially a quoted, comma separated list as used in entity headers in RFC2616.
+ * Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py#L305
  */
 function parseMultiValueHeader(headerStr: string | undefined): string[] {
 	const parsedParts: string[] = [];
@@ -28,14 +27,16 @@ function parseMultiValueHeader(headerStr: string | undefined): string[] {
 	return parsedParts;
 }
 
-/**
- * Generate HTTP date string (RFC 1123 format)
- */
-function httpDate(): string {
-	return new Date().toUTCString();
-}
+// response_headers
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L781
+responseInspection.on(["GET", "POST"], "/response-headers", (c) => {
+	const params = getQueryParams(c);
 
-// GET /cache
+	return c.json(params, 200, params);
+});
+
+// cache
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1315
 responseInspection.get("/cache", (c) => {
 	const ifModifiedSince = c.req.header("if-modified-since");
 	const ifNoneMatch = c.req.header("if-none-match");
@@ -55,29 +56,14 @@ responseInspection.get("/cache", (c) => {
 		},
 		200,
 		{
-			"Last-Modified": httpDate(),
+			"Last-Modified": new Date().toUTCString(),
 			ETag: crypto.randomUUID().replaceAll("-", ""),
 		},
 	);
 });
 
-// GET /cache/:value
-responseInspection.get("/cache/:value", (c) => {
-	const value = c.req.param("value");
-
-	return c.json(
-		{
-			args: getQueryParams(c),
-			headers: getHeaders(c),
-			origin: getOrigin(c),
-			url: c.req.url,
-		},
-		200,
-		{ "Cache-Control": `public, max-age=${value}` },
-	);
-});
-
-// GET /etag/:etag
+// etag
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1348
 responseInspection.get("/etag/:etag", (c) => {
 	const etag = c.req.param("etag");
 	const ifNoneMatch = parseMultiValueHeader(c.req.header("if-none-match"));
@@ -106,9 +92,19 @@ responseInspection.get("/etag/:etag", (c) => {
 	);
 });
 
-// GET /response-headers
-responseInspection.on(["GET", "POST"], "/response-headers", (c) => {
-	const params = getQueryParams(c);
+// cache_control
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1386
+responseInspection.get("/cache/:value", (c) => {
+	const value = c.req.param("value");
 
-	return c.json(params, 200, params);
+	return c.json(
+		{
+			args: getQueryParams(c),
+			headers: getHeaders(c),
+			origin: getOrigin(c),
+			url: c.req.url,
+		},
+		200,
+		{ "Cache-Control": `public, max-age=${value}` },
+	);
 });

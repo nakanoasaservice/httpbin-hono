@@ -7,7 +7,7 @@ import { getQueryParams } from "../utils/query";
 export const cookies = new Hono();
 
 // Environment cookies that should be hidden by default
-// Reference: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L60
 const ENV_COOKIES = [
 	"_gauges_unique",
 	"_gauges_unique_year",
@@ -21,7 +21,7 @@ const ENV_COOKIES = [
 
 /**
  * Return true if cookie should have secure attribute
- * Reference: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py
+ * Reference: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py#L372
  */
 function secureCookie(c: Context): boolean {
 	try {
@@ -32,7 +32,8 @@ function secureCookie(c: Context): boolean {
 	}
 }
 
-// GET /cookies
+// view_cookies
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L825
 cookies.get("/cookies", (c) => {
 	const cookies = getCookie(c);
 
@@ -49,7 +50,24 @@ cookies.get("/cookies", (c) => {
 	});
 });
 
-// GET /cookies/set
+// set_cookie
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L857
+cookies.get("/cookies/set/:name/:value", (c) => {
+	const name = c.req.param("name");
+	const value = c.req.param("value");
+
+	setCookie(c, name, value, {
+		path: "/",
+		httpOnly: false,
+		secure: secureCookie(c),
+		sameSite: "Lax",
+	});
+
+	return c.redirect("/cookies");
+});
+
+// set_cookies
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L883
 cookies.get("/cookies/set", (c) => {
 	const params = c.req.queries();
 
@@ -66,22 +84,8 @@ cookies.get("/cookies/set", (c) => {
 	return c.redirect("/cookies");
 });
 
-// GET /cookies/set/:name/:value
-cookies.get("/cookies/set/:name/:value", (c) => {
-	const name = c.req.param("name");
-	const value = c.req.param("value");
-
-	setCookie(c, name, value, {
-		path: "/",
-		httpOnly: false,
-		secure: secureCookie(c),
-		sameSite: "Lax",
-	});
-
-	return c.redirect("/cookies");
-});
-
-// GET /cookies/delete
+// delete_cookies
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L914
 cookies.get("/cookies/delete", (c) => {
 	const params = getQueryParams(c);
 

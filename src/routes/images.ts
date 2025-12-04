@@ -23,52 +23,6 @@ const IMAGE_CONFIG: Record<ImageFormat, { path: string; contentType: string }> =
 		},
 	};
 
-export const images = new Hono<{ Bindings: Env }>();
-
-// GET /image
-images.get("/image", async (c) => {
-	const accept = c.req.header("accept")?.toLowerCase() || "";
-
-	// If no Accept header, default to PNG
-	if (!accept) {
-		return serveImage(c, "png");
-	}
-
-	// Check Accept header in priority order
-	if (accept.includes("image/webp")) {
-		return serveImage(c, "webp");
-	} else if (accept.includes("image/svg+xml")) {
-		return serveImage(c, "svg");
-	} else if (accept.includes("image/jpeg")) {
-		return serveImage(c, "jpeg");
-	} else if (accept.includes("image/png") || accept.includes("image/*")) {
-		return serveImage(c, "png");
-	} else {
-		// Unsupported media type
-		return c.text("Unsupported media type", 406);
-	}
-});
-
-// GET /image/png
-images.get("/image/png", async (c) => {
-	return serveImage(c, "png");
-});
-
-// GET /image/jpeg
-images.get("/image/jpeg", async (c) => {
-	return serveImage(c, "jpeg");
-});
-
-// GET /image/webp
-images.get("/image/webp", async (c) => {
-	return serveImage(c, "webp");
-});
-
-// GET /image/svg
-images.get("/image/svg", async (c) => {
-	return serveImage(c, "svg");
-});
-
 async function serveImage(
 	c: Context<{ Bindings: Env }>,
 	format: ImageFormat,
@@ -90,3 +44,54 @@ async function serveImage(
 		},
 	});
 }
+
+export const images = new Hono<{ Bindings: Env }>();
+
+// image
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1628
+images.get("/image", async (c) => {
+	const accept = c.req.header("accept")?.toLowerCase() || "";
+
+	// If no Accept header, default to PNG
+	if (!accept) {
+		return await serveImage(c, "png");
+	}
+
+	// Check Accept header in priority order
+	if (accept.includes("image/webp")) {
+		return await serveImage(c, "webp");
+	} else if (accept.includes("image/svg+xml")) {
+		return await serveImage(c, "svg");
+	} else if (accept.includes("image/jpeg")) {
+		return await serveImage(c, "jpeg");
+	} else if (accept.includes("image/png") || accept.includes("image/*")) {
+		return await serveImage(c, "png");
+	} else {
+		// Unsupported media type
+		return c.text("Unsupported media type", 406);
+	}
+});
+
+// image_png
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1663
+images.get("/image/png", async (c) => {
+	return await serveImage(c, "png");
+});
+
+// image_jpeg
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1679
+images.get("/image/jpeg", async (c) => {
+	return await serveImage(c, "jpeg");
+});
+
+// image_webp
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1695
+images.get("/image/webp", async (c) => {
+	return await serveImage(c, "webp");
+});
+
+// image_svg
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1711
+images.get("/image/svg", async (c) => {
+	return await serveImage(c, "svg");
+});

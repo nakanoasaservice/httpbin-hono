@@ -7,14 +7,48 @@ import { getQueryParams } from "../utils/query";
 
 export const dynamicData = new Hono();
 
-// GET /uuid
+// view_uuid
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L317
 dynamicData.get("/uuid", (c) => {
 	const uuid = crypto.randomUUID();
 
 	return c.json({ uuid });
 });
 
-// GET /base64/:value
+// delay_response
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1196
+dynamicData.all("/delay/:delay", async (c) => {
+	const delayParam = c.req.param("delay");
+	const delay = parseFloat(delayParam);
+
+	if (Number.isNaN(delay) || delay < 0) {
+		return c.json(
+			{ error: "Invalid delay. Must be a non-negative number" },
+			400,
+		);
+	}
+
+	// Original implementation limits to 10 seconds if delay exceeds 10 (does not return error)
+	const limitedDelay = Math.min(delay, 10);
+
+	await new Promise((resolve) => setTimeout(resolve, limitedDelay * 1000));
+
+	const { data, files, form, json } = await getRequestBodyData(c);
+
+	return c.json({
+		args: getQueryParams(c),
+		data,
+		files,
+		form,
+		headers: getHeaders(c),
+		json,
+		origin: getOrigin(c),
+		url: c.req.url,
+	});
+});
+
+// decode_base64
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1291
 dynamicData.get("/base64/:value", (c) => {
 	const value = c.req.param("value");
 
@@ -26,7 +60,8 @@ dynamicData.get("/base64/:value", (c) => {
 	}
 });
 
-// GET /bytes/:n
+// random_bytes
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1423
 dynamicData.get("/bytes/:n", (c) => {
 	const n = parseInt(c.req.param("n"), 10);
 
@@ -72,35 +107,4 @@ dynamicData.get("/bytes/:n", (c) => {
 	}
 
 	return c.body(bytes, 200, { "Content-Type": "application/octet-stream" });
-});
-
-// GET /delay/:delay, POST /delay/:delay, PUT /delay/:delay, DELETE /delay/:delay, PATCH /delay/:delay, TRACE /delay/:delay
-dynamicData.all("/delay/:delay", async (c) => {
-	const delayParam = c.req.param("delay");
-	const delay = parseFloat(delayParam);
-
-	if (Number.isNaN(delay) || delay < 0) {
-		return c.json(
-			{ error: "Invalid delay. Must be a non-negative number" },
-			400,
-		);
-	}
-
-	// Original implementation limits to 10 seconds if delay exceeds 10 (does not return error)
-	const limitedDelay = Math.min(delay, 10);
-
-	await new Promise((resolve) => setTimeout(resolve, limitedDelay * 1000));
-
-	const { data, files, form, json } = await getRequestBodyData(c);
-
-	return c.json({
-		args: getQueryParams(c),
-		data,
-		files,
-		form,
-		headers: getHeaders(c),
-		json,
-		origin: getOrigin(c),
-		url: c.req.url,
-	});
 });

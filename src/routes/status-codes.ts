@@ -58,6 +58,7 @@ function weightedChoice(choices: Array<[number, number]>): number {
 
 /**
  * Returns response object of given status code with special handling
+ * Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py#L207
  */
 function createStatusCodeResponse(code: number): {
 	status: ContentfulStatusCode;
@@ -170,6 +171,8 @@ function handleStatusCodes(codes: string) {
 	return createStatusCodeResponse(selectedCode);
 }
 
+// view_status_code
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L732
 statusCodes.all("/status/:codes", (c) => {
 	const codes = c.req.param("codes");
 	const result = handleStatusCodes(codes);

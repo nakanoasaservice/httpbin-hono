@@ -6,7 +6,8 @@ import { getQueryParams } from "../utils/query";
 
 export const anything = new Hono();
 
-// Handle all methods for /anything and /anything/* (matches multiple path segments)
+// view_anything
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L387
 anything.all("/anything/*", async (c) => {
 	const method = c.req.method;
 	const args = getQueryParams(c);
