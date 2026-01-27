@@ -12,7 +12,7 @@
 		"test": "vitest"
 	},
 	"dependencies": {
-		"hono": "^4.11.4"
+		"hono": "^4.11.7"
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.3.11",
