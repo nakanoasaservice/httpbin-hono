@@ -9,8 +9,8 @@ importers:
   .:
     dependencies:
       hono:
-        specifier: ^4.12.2
-        version: 4.12.2
+        specifier: ^4.12.7
+        version: 4.12.7
     devDependencies:
       '@biomejs/biome':
         specifier: ^2.4.4
@@ -852,8 +852,8 @@ packages:
     engines: {node: ^8.16.0 || ^10.6.0 || >=11.0.0}
     os: [darwin]
 
-  hono@4.12.2:
-    resolution: {integrity: sha512-gJnaDHXKDayjt8ue0n8Gs0A007yKXj4Xzb8+cNjZeYsSzzwKc0Lr+OZgYwVfB0pHfUs17EPoLvrOsEaJ9mj+Tg==}
+  hono@4.12.7:
+    resolution: {integrity: sha512-jq9l1DM0zVIvsm3lv9Nw9nlJnMNPOcAtsbsgiUhWcFzPE99Gvo6yRTlszSLLYacMeQ6quHD6hMfId8crVHvexw==}
     engines: {node: '>=16.9.0'}
 
   js-tokens@9.0.1:
@@ -1684,7 +1684,7 @@ snapshots:
   fsevents@2.3.3:
     optional: true
 
-  hono@4.12.2: {}
+  hono@4.12.7: {}
 
   js-tokens@9.0.1: {}
 
