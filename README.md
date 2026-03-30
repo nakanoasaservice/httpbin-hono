@@ -27,13 +27,12 @@ After deployment, your httpbin service will be available at `https://your-worker
 
 ## Prerequisites
 
-- Node.js (v18 or later)
-- pnpm
+- [Bun](https://bun.sh/) (v1.3 or later)
 
 ## Installation
 
 ```bash
-pnpm install
+bun install
 ```
 
 ## Development
@@ -41,7 +40,7 @@ pnpm install
 Start the development server:
 
 ```bash
-pnpm run dev
+bun run dev
 ```
 
 The service will be available at `http://localhost:8787` (or the port specified by Wrangler).
@@ -53,7 +52,7 @@ The service will be available at `http://localhost:8787` (or the port specified 
 Deploy to Cloudflare Workers:
 
 ```bash
-pnpm run deploy
+bun run deploy
 ```
 
 ## Type Generation
@@ -61,7 +60,7 @@ pnpm run deploy
 For generating/synchronizing types based on your Worker configuration, run:
 
 ```bash
-pnpm run cf-typegen
+bun run cf-typegen
 ```
 
 Pass the `Env` as generics when instantiating `Hono`:
@@ -76,13 +75,13 @@ const app = new Hono<{ Bindings: Env }>()
 Check code quality with Biome:
 
 ```bash
-pnpm run check
+bun run check
 ```
 
 Auto-fix issues:
 
 ```bash
-pnpm run check:fix
+bun run check:fix
 ```
 
 ## API Documentation

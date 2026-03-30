@@ -4,5 +4,5 @@
 	"editor.codeActionsOnSave": {
 		"source.fixAll.biome": "always"
 	},
-	"extensions.ignoreRecommendations": false
+	"extensions.ignoreRecommendations": true
 }
