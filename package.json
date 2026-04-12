@@ -12,13 +12,13 @@
 		"test": "vitest"
 	},
 	"dependencies": {
-		"hono": "^4.12.2"
+		"hono": "^4.12.10"
 	},
 	"devDependencies": {
-		"@biomejs/biome": "^2.4.4",
-		"@cloudflare/vitest-pool-workers": "^0.13.5",
+		"@biomejs/biome": "^2.4.10",
+		"@cloudflare/vitest-pool-workers": "^0.14.1",
 		"vitest": "^4.1.0",
-		"wrangler": "^4.67.0"
+		"wrangler": "^4.80.0"
 	},
 	"trustedDependencies": [
 		"esbuild",
