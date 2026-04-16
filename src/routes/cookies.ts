@@ -8,6 +8,13 @@ export const cookies = new Hono();
 
 // Environment cookies that should be hidden by default
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L60
+// Hono rejects cookie names outside token / RFC6265-ish charset (see hono/utils/cookie).
+const VALID_COOKIE_NAME = /^[\w!#$%&'*.^`|~+-]+$/;
+
+function encodeCookieNameIfNeeded(name: string): string {
+	return VALID_COOKIE_NAME.test(name) ? name : encodeURIComponent(name);
+}
+
 const ENV_COOKIES = [
 	"_gauges_unique",
 	"_gauges_unique_year",
@@ -56,7 +63,7 @@ cookies.get("/cookies/set/:name/:value", (c) => {
 	const name = c.req.param("name");
 	const value = c.req.param("value");
 
-	setCookie(c, name, value, {
+	setCookie(c, encodeCookieNameIfNeeded(name), value, {
 		path: "/",
 		httpOnly: false,
 		secure: secureCookie(c),
@@ -73,7 +80,7 @@ cookies.get("/cookies/set", (c) => {
 
 	Object.entries(params).forEach(([name, value]) => {
 		// biome-ignore lint/style/noNonNullAssertion: value is not empty
-		setCookie(c, name, value[0]!, {
+		setCookie(c, encodeCookieNameIfNeeded(name), value[0]!, {
 			path: "/",
 			httpOnly: false,
 			secure: secureCookie(c),
