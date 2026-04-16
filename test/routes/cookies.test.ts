@@ -275,9 +275,11 @@ describe("Cookies", () => {
 			expect(data.cookies["name"]).toBe("John Doe");
 		});
 
-		it("should handle special characters in cookie name and value", async () => {
+		it("should handle URL-encoded token characters in cookie name and value", async () => {
+			// Cookie names must be RFC 6265 `token` characters (spaces are invalid).
+			// Use percent-encoding in the path that decodes to valid tokens.
 			const res = await cookies.request(
-				"/cookies/set/test%20name/test%20value",
+				"/cookies/set/test%2Dname/test%5Fvalue",
 				{},
 				env,
 			);
