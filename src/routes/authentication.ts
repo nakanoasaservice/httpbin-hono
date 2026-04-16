@@ -8,7 +8,7 @@ export const authentication = new Hono();
  * Parse Digest authorization header
  */
 function parseDigestAuth(authHeader: string): Record<string, string> | null {
-	if (!authHeader || !authHeader.startsWith("Digest ")) {
+	if (!authHeader?.startsWith("Digest ")) {
 		return null;
 	}
 
@@ -184,7 +184,7 @@ authentication.get("/basic-auth/:user/:passwd", async (c) => {
 
 	const authHeader = c.req.header("authorization");
 
-	if (!authHeader || !authHeader.startsWith("Basic ")) {
+	if (!authHeader?.startsWith("Basic ")) {
 		return c.body(null, 401, {
 			"WWW-Authenticate": 'Basic realm="Fake Realm"',
 		});
@@ -210,7 +210,7 @@ authentication.get("/basic-auth/:user/:passwd", async (c) => {
 authentication.get("/bearer", (c) => {
 	const authHeader = c.req.header("authorization");
 
-	if (!authHeader || !authHeader.startsWith("Bearer ")) {
+	if (!authHeader?.startsWith("Bearer ")) {
 		return c.body(null, 401, { "WWW-Authenticate": "Bearer" });
 	}
 
