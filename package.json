@@ -16,10 +16,10 @@
 	},
 	"devDependencies": {
 		"@biomejs/biome": "^2.4.16",
-		"@cloudflare/vitest-pool-workers": "^0.16.10",
+		"@cloudflare/vitest-pool-workers": "^0.16.13",
 		"typescript": "^6.0.3",
-		"vitest": "^4.1.7",
-		"wrangler": "^4.95.0"
+		"vitest": "^4.1.8",
+		"wrangler": "^4.98.0"
 	},
 	"trustedDependencies": [
 		"esbuild",
