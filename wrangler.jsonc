@@ -2,7 +2,7 @@
 	"$schema": "node_modules/wrangler/config-schema.json",
 	"name": "httpbin-hono",
 	"main": "src/index.ts",
-	"compatibility_date": "2025-11-09",
+	"compatibility_date": "2026-11-13",
 
 	"assets": {
 		"directory": "./public/",
