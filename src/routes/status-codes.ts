@@ -130,6 +130,13 @@ function createStatusCodeResponse(code: number): {
 }
 
 /**
+ * The Workers Response constructor only accepts 200-599 (1xx are not sendable)
+ */
+function isSupportedStatus(code: number): boolean {
+	return code >= 200 && code <= 599;
+}
+
+/**
  * Return status code or random status code if more than one are given
  */
 function handleStatusCodes(codes: string) {
@@ -137,7 +144,7 @@ function handleStatusCodes(codes: string) {
 	if (!codes.includes(",")) {
 		const code = parseInt(codes, 10);
 		// Check if the entire string is a valid number
-		if (Number.isNaN(code) || code.toString() !== codes.trim()) {
+		if (code.toString() !== codes.trim() || !isSupportedStatus(code)) {
 			return { error: "Invalid status code", status: 400 };
 		}
 		return createStatusCodeResponse(code);
@@ -160,7 +167,7 @@ function handleStatusCodes(codes: string) {
 		const trimmedCodeStr = codeStr.trim();
 		const code = parseInt(trimmedCodeStr, 10);
 		// Check if the entire string is a valid number
-		if (Number.isNaN(code) || code.toString() !== trimmedCodeStr) {
+		if (code.toString() !== trimmedCodeStr || !isSupportedStatus(code)) {
 			return { error: "Invalid status code", status: 400 };
 		}
 

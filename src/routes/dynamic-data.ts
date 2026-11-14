@@ -65,34 +65,34 @@ dynamicData.get("/base64/:value", (c) => {
 dynamicData.get("/bytes/:n", (c) => {
 	const n = parseInt(c.req.param("n"), 10);
 
-	// Original implementation limits to 100KB (100 * 1024 = 102400)
-	const maxBytes = 100 * 1024;
-	const limitedN = Math.min(n, maxBytes);
-
 	if (Number.isNaN(n) || n < 0) {
 		return c.json(
-			{ error: "Invalid byte count. Must be a positive integer" },
+			{ error: "Invalid byte count. Must be a non-negative integer" },
 			400,
 		);
 	}
+
+	// Original implementation limits to 100KB (100 * 1024 = 102400)
+	const limitedN = Math.min(n, 100 * 1024);
 
 	// Support for seed parameter
 	const seed = c.req.query("seed");
 	if (seed) {
 		// Use seed-based random generation if seed is specified
 		// Use simple linear congruential generator (similar to original implementation's random.randint)
-		const seedNum = parseInt(seed, 10);
-		if (!Number.isNaN(seedNum)) {
-			// Set seed (simple implementation)
-			let randomSeed = seedNum;
-			const bytes = new Uint8Array(limitedN);
-			for (let i = 0; i < limitedN; i++) {
-				// Generate pseudo-random number using linear congruential generator
-				randomSeed = (randomSeed * 1103515245 + 12345) & 0x7fffffff;
-				bytes[i] = randomSeed % 256;
-			}
-			return c.body(bytes, 200, { "Content-Type": "application/octet-stream" });
+		const seedNum = Number(seed);
+		if (!Number.isInteger(seedNum)) {
+			return c.json({ error: "Invalid seed. Must be an integer" }, 400);
 		}
+		// Set seed (simple implementation)
+		let randomSeed = seedNum;
+		const bytes = new Uint8Array(limitedN);
+		for (let i = 0; i < limitedN; i++) {
+			// Generate pseudo-random number using linear congruential generator
+			randomSeed = (randomSeed * 1103515245 + 12345) & 0x7fffffff;
+			bytes[i] = randomSeed % 256;
+		}
+		return c.body(bytes, 200, { "Content-Type": "application/octet-stream" });
 	}
 
 	// Use crypto.getRandomValues if seed is not specified

@@ -43,51 +43,18 @@ function generateNonce(): string {
 }
 
 /**
- * Calculate hash digest using specified algorithm
+ * Hex digest of data. Workers' Web Crypto supports MD5 in addition to SHA-*.
  */
-async function calculateDigest(
+async function hexDigest(
 	algorithm: string,
-	data: string,
+	data: string | ArrayBuffer,
 ): Promise<string> {
-	const encoder = new TextEncoder();
-	const dataBuffer = encoder.encode(data);
-
-	let hashBuffer: ArrayBuffer;
-	if (algorithm === "MD5") {
-		// MD5 is not available in Web Crypto API, so we'll use a workaround
-		// For MD5, we'll use a simple hash function (not cryptographically secure)
-		// In production, you might want to use a library like crypto-js
-		// For now, we'll implement a basic MD5-like hash
-		const hash = await crypto.subtle.digest("SHA-256", dataBuffer);
-		hashBuffer = hash;
-	} else if (algorithm === "SHA-256") {
-		hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
-	} else if (algorithm === "SHA-512") {
-		hashBuffer = await crypto.subtle.digest("SHA-512", dataBuffer);
-	} else {
-		hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
-	}
-
-	const hashArray = Array.from(new Uint8Array(hashBuffer));
-	return hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-}
-
-/**
- * Calculate MD5 hash (simplified version for compatibility)
- * Note: This is a simplified implementation. For production use, consider using a proper MD5 library.
- */
-async function md5Hash(data: string): Promise<string> {
-	const encoder = new TextEncoder();
-	const dataBuffer = encoder.encode(data);
-	// Use SHA-256 as a fallback since MD5 is not available in Web Crypto API
-	// This is not cryptographically equivalent but works for testing purposes
-	const hashBuffer = await crypto.subtle.digest("SHA-256", dataBuffer);
-	const hashArray = Array.from(new Uint8Array(hashBuffer));
-	// Return first 32 characters to simulate MD5 length
-	return hashArray
-		.map((b) => b.toString(16).padStart(2, "0"))
-		.join("")
-		.substring(0, 32);
+	const buffer =
+		typeof data === "string" ? new TextEncoder().encode(data) : data;
+	const hash = await crypto.subtle.digest(algorithm, buffer);
+	return Array.from(new Uint8Array(hash), (b) =>
+		b.toString(16).padStart(2, "0"),
+	).join("");
 }
 
 /**
@@ -118,7 +85,8 @@ function generateDigestChallenge(
 }
 
 /**
- * Check Digest authentication
+ * Check Digest authentication (RFC 2617 / RFC 7616)
+ * Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py#L300
  */
 async function checkDigestAuth(
 	authParams: Record<string, string>,
@@ -126,54 +94,36 @@ async function checkDigestAuth(
 	password: string,
 	method: string,
 	uri: string,
-	qop: string | null,
-	algorithm: string = "MD5",
+	body: ArrayBuffer,
+	algorithm: string,
 ): Promise<boolean> {
-	if (!authParams["username"] || !authParams["realm"] || !authParams["nonce"]) {
+	const { realm, nonce, nc, cnonce, qop, response } = authParams;
+	if (authParams["username"] !== username || !realm || !nonce || !response) {
 		return false;
 	}
 
-	if (authParams["username"] !== username) {
+	const HA1 = await hexDigest(algorithm, `${username}:${realm}:${password}`);
+
+	const A2 =
+		qop === "auth-int"
+			? `${method}:${uri}:${await hexDigest(algorithm, body)}`
+			: `${method}:${uri}`;
+	const HA2 = await hexDigest(algorithm, A2);
+
+	let KD: string;
+	if (qop === "auth" || qop === "auth-int") {
+		if (!nc || !cnonce) {
+			return false;
+		}
+		KD = `${HA1}:${nonce}:${nc}:${cnonce}:${qop}:${HA2}`;
+	} else if (qop === undefined) {
+		// RFC 2069 compatibility
+		KD = `${HA1}:${nonce}:${HA2}`;
+	} else {
 		return false;
 	}
 
-	// Calculate HA1
-	const A1 = `${username}:${authParams["realm"]}:${password}`;
-	let HA1: string;
-	if (algorithm === "MD5") {
-		HA1 = await md5Hash(A1);
-	} else {
-		HA1 = await calculateDigest(algorithm, A1);
-	}
-
-	// Calculate HA2
-	const A2 = qop ? `${method}:${uri}` : `${method}:${uri}`;
-	let HA2: string;
-	if (algorithm === "MD5") {
-		HA2 = await md5Hash(A2);
-	} else {
-		HA2 = await calculateDigest(algorithm, A2);
-	}
-
-	// Calculate response
-	let response: string;
-	if (qop && authParams["nc"] && authParams["cnonce"]) {
-		const KD = `${HA1}:${authParams["nonce"]}:${authParams["nc"]}:${authParams["cnonce"]}:${qop}:${HA2}`;
-		if (algorithm === "MD5") {
-			response = await md5Hash(KD);
-		} else {
-			response = await calculateDigest(algorithm, KD);
-		}
-	} else {
-		const KD = `${HA1}:${authParams["nonce"]}:${HA2}`;
-		if (algorithm === "MD5") {
-			response = await md5Hash(KD);
-		} else {
-			response = await calculateDigest(algorithm, KD);
-		}
-	}
-
-	return response === authParams["response"];
+	return (await hexDigest(algorithm, KD)) === response;
 }
 
 // basic_auth
@@ -190,10 +140,21 @@ authentication.get("/basic-auth/:user/:passwd", async (c) => {
 		});
 	}
 
-	const credentials = atob(authHeader.substring(6));
-	const [providedUser, providedPasswd] = credentials.split(":");
+	let credentials: string;
+	try {
+		const binary = atob(authHeader.substring(6));
+		credentials = new TextDecoder().decode(
+			Uint8Array.from(binary, (ch) => ch.charCodeAt(0)),
+		);
+	} catch {
+		credentials = "";
+	}
+	// Only the first ":" separates user and password (RFC 7617)
+	const separator = credentials.indexOf(":");
+	const providedUser = credentials.slice(0, separator);
+	const providedPasswd = credentials.slice(separator + 1);
 
-	if (providedUser !== user || providedPasswd !== passwd) {
+	if (separator === -1 || providedUser !== user || providedPasswd !== passwd) {
 		return c.body(null, 401, {
 			"WWW-Authenticate": 'Basic realm="Fake Realm"',
 		});
@@ -261,7 +222,7 @@ authentication.get("/digest-auth/:qop/:user/:passwd", async (c) => {
 		passwd,
 		c.req.method,
 		uri,
-		qop,
+		await c.req.arrayBuffer(),
 		"MD5",
 	);
 
@@ -325,7 +286,7 @@ authentication.get("/digest-auth/:qop/:user/:passwd/:algorithm", async (c) => {
 		passwd,
 		c.req.method,
 		uri,
-		qop,
+		await c.req.arrayBuffer(),
 		algorithm,
 	);
 
@@ -408,7 +369,7 @@ authentication.get(
 			passwd,
 			c.req.method,
 			uri,
-			qop,
+			await c.req.arrayBuffer(),
 			algorithm,
 		);
 
