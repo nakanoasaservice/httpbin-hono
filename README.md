@@ -101,7 +101,7 @@ httpbin-hono implements every endpoint of [httpbin](https://github.com/postmanla
 
 ### Bug fixes and stricter validation
 
-- **Invalid input returns `400` with a JSON error.** In httpbin, a non-integer path segment returns `404` (`/bytes/abc`, `/redirect/abc`), and some invalid values crash with `500` (`/redirect/0`, `/delay/-1`, `/bytes/10?seed=abc`, `/drip?numbytes=abc`).
+- **Invalid input returns `400`.** In httpbin, a non-integer path segment returns `404` (`/bytes/abc`, `/redirect/abc`), and some invalid values crash with `500` (`/redirect/0`, `/delay/-1`, `/bytes/10?seed=abc`, `/drip?numbytes=abc`).
 - **Digest auth checks the algorithm in the URL.** httpbin hashes with whatever `algorithm` the client sends, so `/digest-auth/auth/user/passwd/SHA-256` also accepts an MD5 response. httpbin-hono requires the algorithm the route asks for.
 - **`/base64` also accepts standard Base64** (`+`, padding), not just the URL-safe alphabet.
 - **Digest auth rejects an unknown `qop` or algorithm with `400`.** httpbin treats an unknown `qop` as "either" and an unknown algorithm as MD5, so a typo such as `/digest-auth/auth/user/passwd/SHA256` silently uses MD5.
@@ -115,6 +115,7 @@ httpbin-hono implements every endpoint of [httpbin](https://github.com/postmanla
 
 - **`/legacy` is not implemented.** It is httpbin's old landing page, superseded by the Swagger UI at `/`, and its content links to defunct services.
 - **Seeded random bytes differ from httpbin.** `/bytes` and `/stream-bytes` with the same `seed` always return the same bytes, and the two endpoints agree with each other. The bytes are not the ones Python's `random.seed()` would produce.
+- **Streamed chunks are between 1 KB and 64 KB.** `chunk_size` for `/stream-bytes` and `/range` is clamped to that range, and `/drip` sends at most 64 KB at a time. Tiny chunks cost a lot of CPU (`chunk_size=1` for 100 KB takes seconds), and one huge chunk holds the whole body in memory.
 - **`/drip` sends bytes in batches of at least 50 ms** instead of sleeping after every byte, so a large `numbytes` doesn't schedule millions of timers. The stream ends with the last byte instead of a final pause.
 - **`/response-headers` echoes only the query parameters.** httpbin also adds the response's own `Content-Type` and `Content-Length` to the JSON body, recalculating until the length is stable.
 - **CORS preflights return `204 No Content` for any path** (via Hono's `cors` middleware), the conventional status for a bodiless response. httpbin returns `200`, answers `OPTIONS` only for existing routes, and lists slightly different methods in `Access-Control-Allow-Methods`.

@@ -57,6 +57,25 @@ describe("Streaming and dynamic data", () => {
 			);
 		});
 
+		it.each([
+			["1", 1024],
+			["1000000", 65536],
+		])(
+			"should clamp chunk_size=%s to %i bytes",
+			async (chunkSize, expected) => {
+				const res = await app.request(
+					`/stream-bytes/102400?chunk_size=${chunkSize}`,
+					{},
+					env,
+				);
+
+				const reader = (res.body as ReadableStream<Uint8Array>).getReader();
+				const { value } = await reader.read();
+				await reader.cancel();
+				expect(value?.length).toBe(expected);
+			},
+		);
+
 		it("should cap the size at 100KB", async () => {
 			const res = await app.request("/stream-bytes/200000", {}, env);
 

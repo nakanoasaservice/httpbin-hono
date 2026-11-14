@@ -10,6 +10,19 @@ export const dynamicData = new Hono();
 
 const MAX_BYTES = 100 * 1024;
 
+// Chunk size bounds for streamed bodies. Huge chunks hold a lot of memory
+// (an isolate's 128MB is shared by its concurrent requests), and tiny chunks
+// cost far more CPU per byte (chunk_size=1 for 100KB takes seconds). HTTP
+// does not guarantee chunk boundaries reach the client unchanged anyway.
+const MIN_CHUNK = 1024;
+const MAX_CHUNK = 64 * 1024;
+
+/**
+ * Clamp a requested chunk size to [MIN_CHUNK, MAX_CHUNK]
+ */
+const clampChunk = (size: number) =>
+	Math.min(MAX_CHUNK, Math.max(MIN_CHUNK, size));
+
 const sleep = (seconds: number) =>
 	new Promise((resolve) => setTimeout(resolve, seconds * 1000));
 
@@ -161,7 +174,9 @@ dynamicData.get("/drip", async (c) => {
 	// wasteful, so bytes are batched into ticks of at least 50ms.
 	const pause = duration / numbytes;
 	const bytesPerTick =
-		pause > 0 ? Math.max(1, Math.ceil(0.05 / pause)) : numbytes;
+		pause > 0
+			? Math.min(MAX_CHUNK, Math.max(1, Math.ceil(0.05 / pause)))
+			: MAX_CHUNK;
 	let sent = 0;
 	const stream = chunkedStream(
 		numbytes,
@@ -247,7 +262,7 @@ dynamicData.get("/stream-bytes/:n", (c) => {
 
 	const fill = randomByteSource(seed);
 	return c.body(
-		chunkedStream(Math.min(n, MAX_BYTES), Math.max(1, chunkSize), fill),
+		chunkedStream(Math.min(n, MAX_BYTES), clampChunk(chunkSize), fill),
 		200,
 		{ "Content-Type": "application/octet-stream" },
 	);
@@ -361,7 +376,7 @@ dynamicData.get("/range/:numbytes", (c) => {
 	const pausePerByte = duration / numbytes;
 	const stream = chunkedStream(
 		length,
-		Math.max(1, chunkSize),
+		clampChunk(chunkSize),
 		(chunk, offset) => {
 			for (let i = 0; i < chunk.length; i++) {
 				chunk[i] = 0x61 + ((first + offset + i) % 26); // "a" + i % 26

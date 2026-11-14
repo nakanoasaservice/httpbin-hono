@@ -199,16 +199,27 @@ async function digestAuth(c: Context) {
 	const cookies = getCookie(c);
 	const setStateCookie = (name: string, value: string) =>
 		setCookie(c, name, value, { path: "/" });
+	// Every response from here on (challenge, 403 or success) sets it
+	setStateCookie("fake", "fake_value");
+
+	/**
+	 * 401 challenge that resets the stale_after countdown and, once the
+	 * client has sent a nonce, remembers it so reusing it is reported stale
+	 */
+	const challenge = (stale: boolean, lastNonce?: string) => {
+		setStateCookie("stale_after", staleAfter);
+		if (lastNonce !== undefined) {
+			setStateCookie("last_nonce", lastNonce);
+		}
+		return digestChallenge(c, qop, algorithm, stale);
+	};
 
 	const authParams = parseDigestAuth(c.req.header("authorization"));
 	if (!authParams || (requireCookie && !c.req.header("cookie"))) {
-		setStateCookie("stale_after", staleAfter);
-		setStateCookie("fake", "fake_value");
-		return digestChallenge(c, qop, algorithm, false);
+		return challenge(false);
 	}
 
 	if (requireCookie && cookies["fake"] !== "fake_value") {
-		setStateCookie("fake", "fake_value");
 		return c.json({ errors: ["missing cookie set on challenge"] }, 403);
 	}
 
@@ -218,10 +229,7 @@ async function digestAuth(c: Context) {
 		(cookies["last_nonce"] !== undefined && nonce === cookies["last_nonce"]) ||
 		staleAfterCookie === "0"
 	) {
-		setStateCookie("stale_after", staleAfter);
-		setStateCookie("last_nonce", nonce);
-		setStateCookie("fake", "fake_value");
-		return digestChallenge(c, qop, algorithm, true);
+		return challenge(true, nonce);
 	}
 
 	const url = new URL(c.req.url);
@@ -235,13 +243,9 @@ async function digestAuth(c: Context) {
 		algorithm,
 	);
 	if (!valid) {
-		setStateCookie("stale_after", staleAfter);
-		setStateCookie("last_nonce", nonce);
-		setStateCookie("fake", "fake_value");
-		return digestChallenge(c, qop, algorithm, false);
+		return challenge(false, nonce);
 	}
 
-	setStateCookie("fake", "fake_value");
 	if (staleAfterCookie) {
 		const remaining = Number.parseInt(staleAfterCookie, 10);
 		setStateCookie(
