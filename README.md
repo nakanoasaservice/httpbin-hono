@@ -90,7 +90,7 @@ Once the server is running, visit the root endpoint (`/`) to access the Swagger 
 
 ## Differences from httpbin
 
-httpbin-hono implements every endpoint of [httpbin](https://github.com/postmanlabs/httpbin) (as of commit `f8ec666`) except `/legacy`, including CORS headers on every response and cookie-based state for Digest auth. The differences below are intentional: they come from the Cloudflare Workers platform, fix bugs in the original, or would add complexity for little benefit.
+httpbin-hono implements every endpoint of [httpbin](https://github.com/postmanlabs/httpbin) (as of commit `f8ec666`) except `/legacy`, including CORS headers on every response and cookie-based state for Digest auth. The differences below are intentional: they come from the Cloudflare Workers platform, fix bugs in the original, keep information httpbin throws away, or avoid complexity for little benefit.
 
 ### Platform (Cloudflare Workers)
 
@@ -104,6 +104,12 @@ httpbin-hono implements every endpoint of [httpbin](https://github.com/postmanla
 - **Invalid input returns `400` with a JSON error.** In httpbin, a non-integer path segment returns `404` (`/bytes/abc`, `/redirect/abc`), and some invalid values crash with `500` (`/redirect/0`, `/delay/-1`, `/bytes/10?seed=abc`, `/drip?numbytes=abc`).
 - **Digest auth checks the algorithm in the URL.** httpbin hashes with whatever `algorithm` the client sends, so `/digest-auth/auth/user/passwd/SHA-256` also accepts an MD5 response. httpbin-hono requires the algorithm the route asks for.
 - **`/base64` also accepts standard Base64** (`+`, padding), not just the URL-safe alphabet.
+- **Digest auth rejects an unknown `qop` or algorithm with `400`.** httpbin treats an unknown `qop` as "either" and an unknown algorithm as MD5, so a typo such as `/digest-auth/auth/user/passwd/SHA256` silently uses MD5.
+
+### Echoing more of the request
+
+- **`data` always contains the raw body.** For form posts (`application/x-www-form-urlencoded`, `multipart/form-data`), httpbin returns `"data": ""` because Flask consumes the body while parsing the form. httpbin-hono returns both the parsed `form` and the raw `data`.
+- **JSON keys are not sorted.** httpbin sorts every key (Flask's `JSON_SORT_KEYS`), including inside the echoed `json`, `args` and `/response-headers`, so you can't see the order you sent. httpbin-hono keeps the original order. The request-echo endpoints (`/get`, `/post`, `/anything`, …) still list their own keys (`args`, `data`, … `url`) alphabetically.
 
 ### Simplifications
 

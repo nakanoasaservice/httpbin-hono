@@ -287,17 +287,15 @@ describe("Authentication", () => {
 			expect(wwwAuth).toContain('qop="auth"');
 		});
 
-		it("should offer both qop values for an unknown qop, like httpbin", async () => {
+		it("should return 400 for an unknown qop", async () => {
 			const res = await authentication.request(
 				"/digest-auth/invalid/foo/bar",
 				{},
 				env,
 			);
 
-			expect(res.status).toBe(401);
-			expect(res.headers.get("www-authenticate")).toContain(
-				'qop="auth, auth-int"',
-			);
+			expect(res.status).toBe(400);
+			expect(await res.text()).toBe("Invalid value for qop");
 		});
 
 		it("should return 401 with non-Digest authorization header", async () => {
@@ -467,15 +465,16 @@ describe("Authentication", () => {
 			expect(wwwAuth).toContain("algorithm=MD5");
 		});
 
-		it("should fall back to MD5 for an unknown algorithm, like httpbin", async () => {
+		it("should return 400 for an unknown algorithm instead of falling back to MD5", async () => {
+			// A typo such as "SHA256" must not silently become MD5
 			const res = await authentication.request(
-				"/digest-auth/auth/foo/bar/INVALID",
+				"/digest-auth/auth/foo/bar/SHA256",
 				{},
 				env,
 			);
 
-			expect(res.status).toBe(401);
-			expect(res.headers.get("www-authenticate")).toContain("algorithm=MD5");
+			expect(res.status).toBe(400);
+			expect(await res.text()).toBe("Invalid value for algorithm");
 		});
 
 		it("should support SHA-256 algorithm", async () => {

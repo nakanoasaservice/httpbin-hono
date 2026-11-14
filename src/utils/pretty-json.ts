@@ -12,23 +12,12 @@ export function skipPrettyJSON(response: Response): Response {
 }
 
 /**
- * JSON.stringify replacer that emits object keys in sorted order
- */
-function sortKeys(_key: string, value: unknown): unknown {
-	if (value === null || typeof value !== "object" || Array.isArray(value)) {
-		return value;
-	}
-	return Object.fromEntries(
-		Object.entries(value).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)),
-	);
-}
-
-/**
- * Format JSON like httpbin's jsonify: 2-space indent, sorted keys, trailing newline
+ * Format JSON like httpbin's jsonify: 2-space indent and a trailing newline.
+ * Unlike Flask, keys are not sorted, so echoed request data keeps its order.
  * Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L72
  */
 export function formatJSON(value: unknown): string {
-	return `${JSON.stringify(value, sortKeys, 2)}\n`;
+	return `${JSON.stringify(value, null, 2)}\n`;
 }
 
 export const prettyJSON: MiddlewareHandler = async (c, next) => {

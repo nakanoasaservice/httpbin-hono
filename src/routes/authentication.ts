@@ -151,17 +151,17 @@ authentication.get("/bearer", (c) => {
 });
 
 /**
- * Digest challenge (401). Like httpbin, an unknown qop offers both.
+ * Digest challenge (401)
  * Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py#L452
  */
 function digestChallenge(
 	c: Context,
-	qop: string | undefined,
+	qop: string,
 	algorithm: string,
 	stale: boolean,
 ) {
 	const random = () => crypto.randomUUID().replaceAll("-", "");
-	let challenge = `Digest realm="${REALM}", nonce="${random()}", opaque="${random()}", qop="${qop ?? "auth, auth-int"}", algorithm=${algorithm}`;
+	let challenge = `Digest realm="${REALM}", nonce="${random()}", opaque="${random()}", qop="${qop}", algorithm=${algorithm}`;
 	if (stale) {
 		challenge += ", stale=TRUE";
 	}
@@ -178,15 +178,19 @@ function digestChallenge(
  * Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1092
  */
 async function digestAuth(c: Context) {
-	const qopParam = c.req.param("qop");
-	const qop =
-		qopParam === "auth" || qopParam === "auth-int" ? qopParam : undefined;
+	const qop = c.req.param("qop") ?? "";
 	const user = c.req.param("user") ?? "";
 	const passwd = c.req.param("passwd") ?? "";
-	const algorithmParam = c.req.param("algorithm") ?? "MD5";
-	const algorithm = DIGEST_ALGORITHMS.includes(algorithmParam)
-		? algorithmParam
-		: "MD5";
+	const algorithm = c.req.param("algorithm") ?? "MD5";
+
+	// httpbin silently treats an unknown qop as "either" and an unknown
+	// algorithm as MD5, which hides typos such as "SHA256". Reject them instead.
+	if (qop !== "auth" && qop !== "auth-int") {
+		return c.text("Invalid value for qop", 400);
+	}
+	if (!DIGEST_ALGORITHMS.includes(algorithm)) {
+		return c.text("Invalid value for algorithm", 400);
+	}
 	const staleAfter = c.req.param("stale_after") ?? "never";
 	const requireCookie = ["1", "t", "true"].includes(
 		c.req.query("require-cookie")?.toLowerCase() ?? "",

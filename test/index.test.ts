@@ -36,7 +36,7 @@ describe("App", () => {
 			expect(await res.text()).toMatch(/^\{\n {2}"uuid": "/);
 		});
 
-		it("should sort keys and end with a newline, like httpbin's jsonify", async () => {
+		it("should end JSON with a newline and keep echoed keys in order", async () => {
 			const res = await app.request(
 				"/anything?b=1&a=2",
 				{ method: "POST", body: '{"z":1,"y":{"d":1,"c":2}}' },
@@ -57,7 +57,11 @@ describe("App", () => {
 				"origin",
 				"url",
 			]);
-			expect(text).toContain('"args": {\n    "a": "2",\n    "b": "1"\n  }');
+			// Unlike httpbin, the client's own key order is not sorted away
+			expect(text).toContain('"args": {\n    "b": "1",\n    "a": "2"\n  }');
+			expect(text).toContain(
+				'"json": {\n    "z": 1,\n    "y": {\n      "d": 1,\n      "c": 2\n    }\n  }',
+			);
 		});
 
 		it("should leave non-JSON responses untouched", async () => {
