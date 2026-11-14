@@ -1,6 +1,7 @@
 import { Hono } from "hono";
 
 import { serveAsset } from "../utils/assets";
+import { statusCodeResponse } from "./status-codes";
 
 const IMAGES = {
 	png: { path: "/images/pig_icon.png", contentType: "image/png" },
@@ -30,7 +31,7 @@ function formatFromAccept(accept: string): ImageFormat | null {
 images.get("/image", (c) => {
 	const format = formatFromAccept(c.req.header("accept")?.toLowerCase() ?? "");
 	if (!format) {
-		return c.text("Unsupported media type", 406);
+		return statusCodeResponse(c, 406);
 	}
 	const { path, contentType } = IMAGES[format];
 	return serveAsset(c, path, contentType);

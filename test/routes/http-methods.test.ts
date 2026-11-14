@@ -42,6 +42,23 @@ describe("HTTP Methods", () => {
 	});
 
 	describe("POST /post", () => {
+		it("should keep the raw body in data for form posts", async () => {
+			// httpbin returns "" here because Flask consumes the form body
+			const res = await httpMethods.request(
+				"/post",
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/x-www-form-urlencoded" },
+					body: "a=1&b=2",
+				},
+				env,
+			);
+
+			const data = (await res.json()) as PostResponse;
+			expect(data.data).toBe("a=1&b=2");
+			expect(data.form).toEqual({ a: "1", b: "2" });
+		});
+
 		it("should keep every value of a repeated form key, including empty ones", async () => {
 			const res = await httpMethods.request(
 				"/post",

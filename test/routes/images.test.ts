@@ -55,6 +55,16 @@ describe("Images", () => {
 			);
 
 			expect(res.status).toBe(406);
+			expect(await res.json()).toEqual({
+				message: "Client did not request a supported media type.",
+				accept: [
+					"image/webp",
+					"image/svg+xml",
+					"image/jpeg",
+					"image/png",
+					"image/*",
+				],
+			});
 		});
 	});
 });

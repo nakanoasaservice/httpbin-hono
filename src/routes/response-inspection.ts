@@ -78,6 +78,12 @@ responseInspection.get("/etag/:etag", (c) => {
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1386
 responseInspection.get("/cache/:value", (c) => {
 	const value = c.req.param("value");
+	if (!/^\d+$/.test(value)) {
+		return c.json(
+			{ error: "Invalid max-age. Must be a non-negative integer" },
+			400,
+		);
+	}
 
 	return c.json(requestInfo(c), 200, {
 		"Cache-Control": `public, max-age=${value}`,

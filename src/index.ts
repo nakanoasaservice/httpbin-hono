@@ -1,4 +1,5 @@
 import { Hono } from "hono";
+import { cors } from "hono/cors";
 
 import { anything } from "./routes/anything";
 import { authentication } from "./routes/authentication";
@@ -16,6 +17,16 @@ import { prettyJSON } from "./utils/pretty-json";
 
 const app = new Hono();
 
+// CORS on every response so browsers can call httpbin from any page.
+// Like httpbin, the request's Origin is echoed (or "*") with credentials allowed.
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L214
+app.use(
+	cors({
+		origin: (origin) => origin || "*",
+		credentials: true,
+		maxAge: 3600,
+	}),
+);
 app.use(prettyJSON);
 
 app.get("/spec.json", (c) => {

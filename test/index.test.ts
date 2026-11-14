@@ -16,6 +16,7 @@ describe("App", () => {
 			expect(spec.host).toBe("example.com");
 			expect(spec.schemes).toEqual(["https"]);
 			expect(Object.keys(spec.paths).length).toBeGreaterThan(0);
+			expect(spec.paths).toHaveProperty("/forms/post");
 		});
 
 		it("should not leak host or scheme between requests", async () => {
@@ -35,10 +36,99 @@ describe("App", () => {
 			expect(await res.text()).toMatch(/^\{\n {2}"uuid": "/);
 		});
 
+		it("should end JSON with a newline and keep echoed keys in order", async () => {
+			const res = await app.request(
+				"/anything?b=1&a=2",
+				{ method: "POST", body: '{"z":1,"y":{"d":1,"c":2}}' },
+				env,
+			);
+			const text = await res.text();
+
+			expect(text.endsWith("}\n")).toBe(true);
+			const keys = [...text.matchAll(/^ {2}"(\w+)":/gm)].map((m) => m[1]);
+			expect(keys).toEqual([
+				"args",
+				"data",
+				"files",
+				"form",
+				"headers",
+				"json",
+				"method",
+				"origin",
+				"url",
+			]);
+			// Unlike httpbin, the client's own key order is not sorted away
+			expect(text).toContain('"args": {\n    "b": "1",\n    "a": "2"\n  }');
+			expect(text).toContain(
+				'"json": {\n    "z": 1,\n    "y": {\n      "d": 1,\n      "c": 2\n    }\n  }',
+			);
+		});
+
 		it("should leave non-JSON responses untouched", async () => {
 			const res = await app.request("/robots.txt", {}, env);
 
 			expect(await res.text()).toBe("User-agent: *\nDisallow: /deny\n");
+		});
+	});
+
+	describe("CORS", () => {
+		it("should echo the request Origin with credentials allowed", async () => {
+			const res = await app.request(
+				"/get",
+				{ headers: { Origin: "https://example.com" } },
+				env,
+			);
+
+			expect(res.headers.get("access-control-allow-origin")).toBe(
+				"https://example.com",
+			);
+			expect(res.headers.get("access-control-allow-credentials")).toBe("true");
+			expect(res.headers.get("access-control-allow-methods")).toBeNull();
+			expect(res.headers.get("vary")).toContain("Origin");
+		});
+
+		it("should allow any origin when no Origin is sent", async () => {
+			const res = await app.request("/status/418", {}, env);
+
+			expect(res.headers.get("access-control-allow-origin")).toBe("*");
+		});
+
+		it("should answer preflight requests with 204 No Content", async () => {
+			const res = await app.request(
+				"/post",
+				{
+					method: "OPTIONS",
+					headers: {
+						Origin: "https://example.com",
+						"Access-Control-Request-Method": "POST",
+						"Access-Control-Request-Headers": "X-Custom, Content-Type",
+					},
+				},
+				env,
+			);
+
+			expect(res.status).toBe(204);
+			expect(res.body).toBeNull();
+			expect(res.headers.get("access-control-allow-origin")).toBe(
+				"https://example.com",
+			);
+			expect(res.headers.get("access-control-allow-credentials")).toBe("true");
+			expect(res.headers.get("access-control-allow-methods")).toContain("POST");
+			expect(res.headers.get("access-control-max-age")).toBe("3600");
+			expect(res.headers.get("access-control-allow-headers")).toBe(
+				"X-Custom,Content-Type",
+			);
+			expect(res.headers.get("vary")).toContain("Origin");
+		});
+	});
+
+	describe("HTML pages", () => {
+		it("should serve an HTML form that posts to /post", async () => {
+			const res = await app.request("/forms/post", {}, env);
+
+			expect(res.status).toBe(200);
+			expect(res.headers.get("content-type")).toBe("text/html; charset=utf-8");
+			expect(await res.text()).toContain('<form method="post" action="/post">');
 		});
 	});
 });

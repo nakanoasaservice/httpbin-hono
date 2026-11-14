@@ -1,4 +1,4 @@
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import type { ContentfulStatusCode, StatusCode } from "hono/utils/http-status";
 
 export const statusCodes = new Hono();
@@ -91,6 +91,18 @@ function weightedChoice(choices: Array<[number, number]>): number {
 	return choices.at(-1)![0];
 }
 
+/**
+ * Response for a status code, with httpbin's special body/headers if any.
+ * Also used by other routes that answer with httpbin's status_code().
+ */
+export function statusCodeResponse(c: Context, code: number): Response {
+	const { body, headers } = SPECIAL_RESPONSES[code] ?? {};
+
+	return body === undefined
+		? c.body(null, code as StatusCode, headers)
+		: c.text(body, code as ContentfulStatusCode, headers);
+}
+
 // view_status_code
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L732
 statusCodes.all("/status/:codes", (c) => {
@@ -99,10 +111,5 @@ statusCodes.all("/status/:codes", (c) => {
 		return c.text("Invalid status code", 400);
 	}
 
-	const code = weightedChoice(choices);
-	const { body, headers } = SPECIAL_RESPONSES[code] ?? {};
-
-	return body === undefined
-		? c.body(null, code as StatusCode, headers)
-		: c.text(body, code as ContentfulStatusCode, headers);
+	return statusCodeResponse(c, weightedChoice(choices));
 });
