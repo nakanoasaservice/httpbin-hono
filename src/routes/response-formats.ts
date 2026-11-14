@@ -61,13 +61,6 @@ responseFormats.get("/html", async (c) => {
 	return serveAsset(c, "/templates/moby.html", "text/html");
 });
 
-// view_landing_page
-// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L241
-// legacy.html is pre-rendered from httpbin's templates/index.html + httpbin.1.html
-responseFormats.get("/legacy", (c) => {
-	return serveAsset(c, "/templates/legacy.html", "text/html; charset=utf-8");
-});
-
 // view_forms_post
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L850
 responseFormats.get("/forms/post", (c) => {

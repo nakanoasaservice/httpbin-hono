@@ -116,16 +116,6 @@ describe("App", () => {
 	});
 
 	describe("HTML pages", () => {
-		it("should serve the legacy landing page at /legacy", async () => {
-			const res = await app.request("/legacy", {}, env);
-
-			expect(res.status).toBe(200);
-			expect(res.headers.get("content-type")).toBe("text/html; charset=utf-8");
-			const html = await res.text();
-			expect(html).toContain('href="/forms/post"');
-			expect(html).not.toMatch(/{{|{%/);
-		});
-
 		it("should serve an HTML form that posts to /post", async () => {
 			const res = await app.request("/forms/post", {}, env);
 

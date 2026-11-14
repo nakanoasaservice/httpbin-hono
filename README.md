@@ -86,11 +86,11 @@ bun run check:fix
 
 ## API Documentation
 
-Once the server is running, visit the root endpoint (`/`) to access the Swagger UI documentation, which provides an interactive interface to explore all available endpoints. The original httpbin landing page is available at `/legacy`.
+Once the server is running, visit the root endpoint (`/`) to access the Swagger UI documentation, which provides an interactive interface to explore all available endpoints.
 
 ## Differences from httpbin
 
-httpbin-hono implements every endpoint of [httpbin](https://github.com/postmanlabs/httpbin) (as of commit `f8ec666`), including CORS headers on every response and cookie-based state for Digest auth. The differences below are intentional: they come from the Cloudflare Workers platform, fix bugs in the original, or would add complexity for little benefit.
+httpbin-hono implements every endpoint of [httpbin](https://github.com/postmanlabs/httpbin) (as of commit `f8ec666`) except `/legacy`, including CORS headers on every response and cookie-based state for Digest auth. The differences below are intentional: they come from the Cloudflare Workers platform, fix bugs in the original, or would add complexity for little benefit.
 
 ### Platform (Cloudflare Workers)
 
@@ -107,6 +107,7 @@ httpbin-hono implements every endpoint of [httpbin](https://github.com/postmanla
 
 ### Simplifications
 
+- **`/legacy` is not implemented.** It is httpbin's old landing page, superseded by the Swagger UI at `/`, and its content links to defunct services.
 - **Seeded random bytes differ from httpbin.** `/bytes` and `/stream-bytes` with the same `seed` always return the same bytes, and the two endpoints agree with each other. The bytes are not the ones Python's `random.seed()` would produce.
 - **`/drip` sends bytes in batches of at least 50 ms** instead of sleeping after every byte, so a large `numbytes` doesn't schedule millions of timers. The stream ends with the last byte instead of a final pause.
 - **`/response-headers` echoes only the query parameters.** httpbin also adds the response's own `Content-Type` and `Content-Length` to the JSON body, recalculating until the length is stable.
