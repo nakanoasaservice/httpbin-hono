@@ -27,7 +27,8 @@ After deployment, your httpbin service will be available at `https://your-worker
 
 ## Prerequisites
 
-- [Bun](https://bun.sh/) (v1.3 or later)
+- [Bun](https://bun.sh/) (v1.4 or later)
+- Node.js 24 (used by [Vite+](https://viteplus.dev/) for formatting, linting, type checking and tests)
 
 ## Installation
 
@@ -72,7 +73,7 @@ export const images = new Hono<{ Bindings: Env }>();
 
 ## Code Quality
 
-Check code quality with Biome:
+Formatting, linting and type checking run through [Vite+](https://viteplus.dev/) (Oxfmt, Oxlint and tsgolint), configured in `vite.config.ts`:
 
 ```bash
 bun run check
@@ -82,6 +83,14 @@ Auto-fix issues:
 
 ```bash
 bun run check:fix
+```
+
+## Testing
+
+Tests run in the Workers runtime with Vite+ (Vitest) and `@cloudflare/vitest-plugin`:
+
+```bash
+bun run test
 ```
 
 ## API Documentation
