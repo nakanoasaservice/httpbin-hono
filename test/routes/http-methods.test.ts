@@ -42,6 +42,50 @@ describe("HTTP Methods", () => {
 	});
 
 	describe("POST /post", () => {
+		it("should keep every value of a repeated form key, including empty ones", async () => {
+			const res = await httpMethods.request(
+				"/post",
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/x-www-form-urlencoded" },
+					body: "a=&a=1&b=2",
+				},
+				env,
+			);
+
+			const data = (await res.json()) as PostResponse;
+			expect(data.form).toEqual({ a: ["", "1"], b: "2" });
+		});
+
+		it("should group files uploaded under the same field name", async () => {
+			const form = new FormData();
+			form.append("file", new File(["one"], "1.txt", { type: "text/plain" }));
+			form.append("file", new File(["two"], "2.txt", { type: "text/plain" }));
+			const res = await httpMethods.request(
+				"/post",
+				{ method: "POST", body: form },
+				env,
+			);
+
+			const data = (await res.json()) as PostResponse;
+			expect(data.files).toEqual({ file: ["one", "two"] });
+		});
+
+		it("should parse a JSON body into json", async () => {
+			const res = await httpMethods.request(
+				"/post",
+				{
+					method: "POST",
+					headers: { "Content-Type": "application/json" },
+					body: '{"a":[1,2]}',
+				},
+				env,
+			);
+
+			const data = (await res.json()) as PostResponse;
+			expect(data.json).toEqual({ a: [1, 2] });
+		});
+
 		it("should handle large binary data without failing", async () => {
 			const body = new Uint8Array(300_000);
 			body[0] = 0xff;

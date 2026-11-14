@@ -5,6 +5,13 @@ import { statusCodes } from "../../src/routes/status-codes";
 
 describe("Status Codes", () => {
 	describe("GET /status/:codes", () => {
+		it("should return 204 with no body", async () => {
+			const res = await statusCodes.request("/status/204", {}, env);
+
+			expect(res.status).toBe(204);
+			expect(res.body).toBeNull();
+		});
+
 		it("should return 200 status code", async () => {
 			const res = await statusCodes.request("/status/200", {}, env);
 
@@ -175,6 +182,19 @@ describe("Status Codes", () => {
 	});
 
 	describe("Multiple status codes with weighted selection", () => {
+		it("should accept a single code with a weight", async () => {
+			const res = await statusCodes.request("/status/201:5", {}, env);
+
+			expect(res.status).toBe(201);
+		});
+
+		it("should never pick a code with zero weight", async () => {
+			for (let i = 0; i < 20; i++) {
+				const res = await statusCodes.request("/status/200:0,201:1", {}, env);
+				expect(res.status).toBe(201);
+			}
+		});
+
 		it("should return one of the specified status codes", async () => {
 			const res = await statusCodes.request("/status/200,201,202", {}, env);
 

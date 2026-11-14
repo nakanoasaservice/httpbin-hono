@@ -7,7 +7,7 @@ export const responseInspection = new Hono();
 
 /**
  * Break apart an HTTP header string that is potentially a quoted, comma separated list as used in entity headers in RFC2616.
- * Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py#L305
+ * Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py#L432
  */
 function parseMultiValueHeader(headerStr: string | undefined): string[] {
 	const parsedParts: string[] = [];

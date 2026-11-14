@@ -199,9 +199,7 @@ describe("Request Inspection", () => {
 
 			expect(res.status).toBe(200);
 			const data = (await res.json()) as IpResponse;
-			// When no IP headers are present, should return "unknown" or a valid IP
-			expect(data.origin).toBeDefined();
-			expect(typeof data.origin).toBe("string");
+			expect(data.origin).toBe("unknown");
 		});
 
 		it("should handle empty X-Forwarded-For header", async () => {
@@ -217,9 +215,7 @@ describe("Request Inspection", () => {
 
 			expect(res.status).toBe(200);
 			const data = (await res.json()) as IpResponse;
-			// Empty X-Forwarded-For should fallback to other headers or "unknown"
-			expect(data.origin).toBeDefined();
-			expect(typeof data.origin).toBe("string");
+			expect(data.origin).toBe("unknown");
 		});
 	});
 

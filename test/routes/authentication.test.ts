@@ -260,7 +260,7 @@ describe("Authentication", () => {
 			expect(wwwAuth).toContain('qop="auth"');
 		});
 
-		it("should return 401 with invalid qop", async () => {
+		it("should return 400 with invalid qop", async () => {
 			const res = await authentication.request(
 				"/digest-auth/invalid/foo/bar",
 				{},
@@ -637,6 +637,109 @@ describe("Authentication", () => {
 			};
 			expect(data.authenticated).toBe(true);
 			expect(data.user).toBe("foo");
+		});
+	});
+
+	describe("Digest auth edge cases", () => {
+		const nonce = "fixednonce";
+
+		async function digestRequest(
+			path: string,
+			options: {
+				user?: string;
+				password?: string;
+				algorithm?: string | null;
+				qop?: string | null;
+				cnonce?: string | null;
+				nc?: string | null;
+			} = {},
+		) {
+			const header = await makeDigestAuthHeader(
+				options.user ?? "foo",
+				options.password ?? "bar",
+				"GET",
+				path,
+				nonce,
+				"Fake Realm",
+				options.algorithm ?? null,
+				options.qop === undefined ? "auth" : options.qop,
+				options.cnonce === undefined ? "0a4f113b" : options.cnonce,
+				options.nc === undefined ? "00000001" : options.nc,
+			);
+			return authentication.request(
+				path,
+				{ headers: { Authorization: header } },
+				env,
+			);
+		}
+
+		it("should accept SHA-512", async () => {
+			const res = await digestRequest("/digest-auth/auth/foo/bar/SHA-512", {
+				algorithm: "SHA-512",
+			});
+
+			expect(res.status).toBe(200);
+		});
+
+		it("should accept MD5 when named explicitly", async () => {
+			const res = await digestRequest("/digest-auth/auth/foo/bar/MD5", {
+				algorithm: "MD5",
+			});
+
+			expect(res.status).toBe(200);
+		});
+
+		it("should reject a response hashed with a different algorithm", async () => {
+			const res = await digestRequest("/digest-auth/auth/foo/bar/SHA-256", {
+				algorithm: "MD5",
+			});
+
+			expect(res.status).toBe(401);
+		});
+
+		it("should accept RFC 2069 requests without qop", async () => {
+			const res = await digestRequest("/digest-auth/auth/foo/bar", {
+				qop: null,
+				cnonce: null,
+				nc: null,
+			});
+
+			expect(res.status).toBe(200);
+		});
+
+		it("should reject qop=auth without nc and cnonce", async () => {
+			const res = await digestRequest("/digest-auth/auth/foo/bar", {
+				cnonce: null,
+				nc: null,
+			});
+
+			expect(res.status).toBe(401);
+		});
+
+		it("should reject a wrong username", async () => {
+			const res = await digestRequest("/digest-auth/auth/foo/bar", {
+				user: "other",
+			});
+
+			expect(res.status).toBe(401);
+		});
+
+		it("should accept valid credentials on the stale_after route", async () => {
+			const res = await digestRequest("/digest-auth/auth/foo/bar/MD5/never", {
+				algorithm: "MD5",
+			});
+
+			expect(res.status).toBe(200);
+		});
+
+		it("should not include algorithm in the challenge of the short route", async () => {
+			const res = await authentication.request(
+				"/digest-auth/auth/foo/bar",
+				{},
+				env,
+			);
+
+			expect(res.headers.get("www-authenticate")).not.toContain("algorithm");
 		});
 	});
 });

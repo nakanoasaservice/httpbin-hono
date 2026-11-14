@@ -193,7 +193,7 @@ describe("Cookies", () => {
 			expect(res.status).toBe(302);
 			const setCookieHeaders = res.headers.getSetCookie();
 			expect(setCookieHeaders.length).toBeGreaterThan(0);
-			// In test environment, URL is likely http://, so Secure should not be set
+			// app.request() uses http://localhost, so Secure should not be set
 			expect(setCookieHeaders[0]).not.toContain("Secure");
 			expect(setCookieHeaders[0]).toContain("foo=bar");
 		});
@@ -294,7 +294,7 @@ describe("Cookies", () => {
 			expect(res.status).toBe(302);
 			const setCookieHeaders = res.headers.getSetCookie();
 			expect(setCookieHeaders.length).toBeGreaterThan(0);
-			// In test environment, URL is likely http://, so Secure should not be set
+			// app.request() uses http://localhost, so Secure should not be set
 			expect(setCookieHeaders[0]).not.toContain("Secure");
 			expect(setCookieHeaders[0]).toContain("foo=bar");
 		});
@@ -361,7 +361,7 @@ describe("Cookies", () => {
 			expect(res.status).toBe(302);
 			const setCookieHeaders = res.headers.getSetCookie();
 			expect(setCookieHeaders.length).toBeGreaterThan(0);
-			// In test environment, URL is likely http://, so Secure should not be set
+			// app.request() uses http://localhost, so Secure should not be set
 			expect(setCookieHeaders[0]).not.toContain("Secure");
 			expect(setCookieHeaders[0]).toContain("Max-Age=0");
 		});
@@ -408,7 +408,7 @@ describe("Cookies", () => {
 			expect(res.status).toBe(302);
 			const setCookieHeaders = res.headers.getSetCookie();
 			expect(setCookieHeaders.length).toBeGreaterThan(0);
-			// In test environment, URL is likely http://, so Secure should not be set
+			// app.request() uses http://localhost, so Secure should not be set
 			expect(setCookieHeaders[0]).not.toContain("Secure");
 			expect(setCookieHeaders[0]).toContain("foo=bar");
 		});
