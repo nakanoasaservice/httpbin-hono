@@ -1,8 +1,6 @@
-import type { Context } from "hono";
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
 import { deleteCookie, getCookie, setCookie } from "hono/cookie";
-
-import { getQueryParams } from "../utils/query";
+import type { CookieOptions } from "hono/utils/cookie";
 
 export const cookies = new Hono();
 
@@ -20,16 +18,16 @@ const ENV_COOKIES = [
 ];
 
 /**
- * Return true if cookie should have secure attribute
+ * Cookie attributes used by set/delete; secure only over HTTPS
  * Reference: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py#L372
  */
-function secureCookie(c: Context): boolean {
-	try {
-		const url = new URL(c.req.url);
-		return url.protocol === "https:";
-	} catch {
-		return false;
-	}
+function cookieOptions(c: Context): CookieOptions {
+	return {
+		path: "/",
+		httpOnly: false,
+		secure: new URL(c.req.url).protocol === "https:",
+		sameSite: "Lax",
+	};
 }
 
 // view_cookies
@@ -38,8 +36,7 @@ cookies.get("/cookies", (c) => {
 	const cookies = getCookie(c);
 
 	// Hide environment cookies by default (unless show_env query param is present)
-	const hideEnv = !c.req.query("show_env");
-	if (hideEnv) {
+	if (!c.req.query("show_env")) {
 		for (const envCookie of ENV_COOKIES) {
 			delete cookies[envCookie];
 		}
@@ -56,12 +53,7 @@ cookies.get("/cookies/set/:name/:value", (c) => {
 	const name = c.req.param("name");
 	const value = c.req.param("value");
 
-	setCookie(c, name, value, {
-		path: "/",
-		httpOnly: false,
-		secure: secureCookie(c),
-		sameSite: "Lax",
-	});
+	setCookie(c, name, value, cookieOptions(c));
 
 	return c.redirect("/cookies");
 });
@@ -69,17 +61,9 @@ cookies.get("/cookies/set/:name/:value", (c) => {
 // set_cookies
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L883
 cookies.get("/cookies/set", (c) => {
-	const params = c.req.queries();
-
-	Object.entries(params).forEach(([name, value]) => {
-		// biome-ignore lint/style/noNonNullAssertion: value is not empty
-		setCookie(c, name, value[0]!, {
-			path: "/",
-			httpOnly: false,
-			secure: secureCookie(c),
-			sameSite: "Lax",
-		});
-	});
+	for (const [name, [value = ""]] of Object.entries(c.req.queries())) {
+		setCookie(c, name, value, cookieOptions(c));
+	}
 
 	return c.redirect("/cookies");
 });
@@ -87,16 +71,9 @@ cookies.get("/cookies/set", (c) => {
 // delete_cookies
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L914
 cookies.get("/cookies/delete", (c) => {
-	const params = getQueryParams(c);
-
-	Object.keys(params).forEach((name) => {
-		deleteCookie(c, name, {
-			path: "/",
-			httpOnly: false,
-			secure: secureCookie(c),
-			sameSite: "Lax",
-		});
-	});
+	for (const name of Object.keys(c.req.queries())) {
+		deleteCookie(c, name, cookieOptions(c));
+	}
 
 	return c.redirect("/cookies");
 });

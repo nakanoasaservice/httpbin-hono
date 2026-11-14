@@ -1,9 +1,7 @@
 import { Hono } from "hono";
 
-import { stringFromBase64URL } from "../utils/base64url";
-import { getRequestBodyData } from "../utils/body";
-import { getHeaders, getOrigin } from "../utils/headers";
-import { getQueryParams } from "../utils/query";
+import { decodeBase64 } from "../utils/base64";
+import { requestInfoWithBody } from "../utils/request-info";
 
 export const dynamicData = new Hono();
 
@@ -33,18 +31,7 @@ dynamicData.all("/delay/:delay", async (c) => {
 
 	await new Promise((resolve) => setTimeout(resolve, limitedDelay * 1000));
 
-	const { data, files, form, json } = await getRequestBodyData(c);
-
-	return c.json({
-		args: getQueryParams(c),
-		data,
-		files,
-		form,
-		headers: getHeaders(c),
-		json,
-		origin: getOrigin(c),
-		url: c.req.url,
-	});
+	return c.json(await requestInfoWithBody(c));
 });
 
 // decode_base64
@@ -53,7 +40,7 @@ dynamicData.get("/base64/:value", (c) => {
 	const value = c.req.param("value");
 
 	try {
-		const decoded = stringFromBase64URL(value);
+		const decoded = decodeBase64(value);
 		return c.text(decoded);
 	} catch {
 		return c.text("Incorrect Base64 data try: SFRUUEJJTiBpcyBhd2Vzb21l"); // cspell:disable-line

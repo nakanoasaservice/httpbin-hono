@@ -76,11 +76,11 @@ const ENV_HEADERS = [
 	"CF-Worker",
 ];
 
-export function getHeaders(c: Context, hideEnv = true): Record<string, string> {
+export function getHeaders(c: Context): Record<string, string> {
 	const headers = c.req.header();
 
 	// Hide environment headers by default (unless show_env query param is present)
-	if (hideEnv && !c.req.query("show_env")) {
+	if (!c.req.query("show_env")) {
 		for (const envHeader of ENV_HEADERS) {
 			delete headers[envHeader.toLowerCase()];
 		}
