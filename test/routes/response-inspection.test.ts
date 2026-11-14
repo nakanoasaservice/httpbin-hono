@@ -77,6 +77,12 @@ describe("Response Inspection", () => {
 	});
 
 	describe("GET /cache/:value", () => {
+		it("should return 400 for a non-integer max-age", async () => {
+			const res = await responseInspection.request("/cache/abc", {}, env);
+
+			expect(res.status).toBe(400);
+		});
+
 		it("should set Cache-Control header with max-age", async () => {
 			const res = await responseInspection.request("/cache/60", {}, env);
 

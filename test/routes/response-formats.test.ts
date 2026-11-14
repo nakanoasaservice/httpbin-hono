@@ -107,95 +107,56 @@ describe("Response Formats", () => {
 		});
 	});
 
-	describe("GET /brotli", () => {
-		it("should return JSON response indicating brotli compression", async () => {
-			const res = await responseFormats.request(
-				"/brotli",
-				{
-					headers: {
-						"Accept-Encoding": "br",
-					},
-				},
-				env,
-			);
+	/**
+	 * Decompress a manually encoded response body and parse it as JSON
+	 */
+	async function decompressJSON(
+		res: Response,
+		format: "gzip" | "deflate",
+	): Promise<CompressionResponse> {
+		const body = res.body?.pipeThrough(new DecompressionStream(format));
+		return (await new Response(body).json()) as CompressionResponse;
+	}
+
+	describe.each([
+		{ path: "/gzip", format: "gzip", flag: "gzipped" },
+		{ path: "/deflate", format: "deflate", flag: "deflated" },
+	] as const)("GET $path", ({ path, format, flag }) => {
+		it(`should return a ${format}-compressed JSON body`, async () => {
+			const res = await responseFormats.request(path, {}, env);
 
 			expect(res.status).toBe(200);
-			const data = (await res.json()) as CompressionResponse;
+			expect(res.headers.get("content-type")).toBe("application/json");
+			expect(res.headers.get("content-encoding")).toBe(format);
+			const data = await decompressJSON(res, format);
+			expect(data[flag]).toBe(true);
 			expect(data.method).toBe("GET");
-			expect(data.brotli).toBe(true);
 			expect(data.origin).toBeDefined();
 			expect(data.headers).toBeDefined();
 		});
 
-		it("should return JSON response without Accept-Encoding header", async () => {
+		it("should compress regardless of Accept-Encoding, like httpbin", async () => {
+			const res = await responseFormats.request(
+				path,
+				{ headers: { "Accept-Encoding": "identity" } },
+				env,
+			);
+
+			expect(res.headers.get("content-encoding")).toBe(format);
+			expect((await decompressJSON(res, format))[flag]).toBe(true);
+		});
+	});
+
+	describe("GET /brotli", () => {
+		it("should mark the response as brotli for the runtime to encode", async () => {
+			// The runtime applies brotli when sending, so the body is plain here
 			const res = await responseFormats.request("/brotli", {}, env);
 
 			expect(res.status).toBe(200);
+			expect(res.headers.get("content-encoding")).toBe("br");
 			const data = (await res.json()) as CompressionResponse;
-			expect(data.method).toBe("GET");
 			expect(data.brotli).toBe(true);
-			expect(data.origin).toBeDefined();
-		});
-	});
-
-	describe("GET /deflate", () => {
-		it("should return JSON response indicating deflate compression", async () => {
-			const res = await responseFormats.request(
-				"/deflate",
-				{
-					headers: {
-						"Accept-Encoding": "deflate",
-					},
-				},
-				env,
-			);
-
-			expect(res.status).toBe(200);
-			const data = (await res.json()) as CompressionResponse;
 			expect(data.method).toBe("GET");
-			expect(data.deflated).toBe(true);
-			expect(data.origin).toBeDefined();
-			expect(data.headers).toBeDefined();
-		});
-
-		it("should return JSON response without Accept-Encoding header", async () => {
-			const res = await responseFormats.request("/deflate", {}, env);
-
-			expect(res.status).toBe(200);
-			const data = (await res.json()) as CompressionResponse;
-			expect(data.method).toBe("GET");
-			expect(data.deflated).toBe(true);
-			expect(data.origin).toBeDefined();
-		});
-	});
-
-	describe("GET /gzip", () => {
-		it("should return JSON response indicating gzip compression", async () => {
-			const res = await responseFormats.request(
-				"/gzip",
-				{
-					headers: {
-						"Accept-Encoding": "gzip",
-					},
-				},
-				env,
-			);
-
-			expect(res.status).toBe(200);
-			const data = (await res.json()) as CompressionResponse;
-			expect(data.method).toBe("GET");
-			expect(data.gzipped).toBe(true);
-			expect(data.origin).toBeDefined();
-			expect(data.headers).toBeDefined();
-		});
-
-		it("should return JSON response without Accept-Encoding header", async () => {
-			const res = await responseFormats.request("/gzip", {}, env);
-
-			expect(res.status).toBe(200);
-			const data = (await res.json()) as CompressionResponse;
-			expect(data.method).toBe("GET");
-			expect(data.gzipped).toBe(true);
 			expect(data.origin).toBeDefined();
 		});
 	});

@@ -86,7 +86,33 @@ bun run check:fix
 
 ## API Documentation
 
-Once the server is running, visit the root endpoint (`/`) to access the Swagger UI documentation, which provides an interactive interface to explore all available endpoints.
+Once the server is running, visit the root endpoint (`/`) to access the Swagger UI documentation, which provides an interactive interface to explore all available endpoints. The original httpbin landing page is available at `/legacy`.
+
+## Differences from httpbin
+
+httpbin-hono implements every endpoint of [httpbin](https://github.com/postmanlabs/httpbin) (as of commit `f8ec666`), including CORS headers on every response and cookie-based state for Digest auth. The differences below are intentional: they come from the Cloudflare Workers platform, fix bugs in the original, or would add complexity for little benefit.
+
+### Platform (Cloudflare Workers)
+
+- **Request header names are lowercase.** Workers normalizes header names, so `/headers`, `/get` and similar endpoints return `user-agent` instead of `User-Agent`.
+- **`origin` comes from Cloudflare headers.** The client IP is read from `CF-Connecting-IP`, then `True-Client-IP`, `X-Forwarded-For` and `X-Real-IP`. Cloudflare's own headers (`CF-Ray`, `CF-IPCountry`, …) are hidden like httpbin's environment headers unless `?show_env=1` is passed.
+- **`/status` supports 200–599 only.** The Workers `Response` constructor rejects other codes, so 1xx codes return `400`. For the same reason, `/drip?code=` must be a status code that can carry a body.
+- **`/brotli` is compressed by the runtime.** Workers has no brotli encoder for JavaScript, so the response is marked `Content-Encoding: br` and the runtime compresses it when sending. If the client doesn't accept brotli, Cloudflare re-encodes it (for example as gzip). `/gzip` and `/deflate` are compressed by the worker and always use that encoding, like httpbin.
+
+### Bug fixes and stricter validation
+
+- **Invalid input returns `400` with a JSON error.** In httpbin, a non-integer path segment returns `404` (`/bytes/abc`, `/redirect/abc`), and some invalid values crash with `500` (`/redirect/0`, `/delay/-1`, `/bytes/10?seed=abc`, `/drip?numbytes=abc`).
+- **Digest auth checks the algorithm in the URL.** httpbin hashes with whatever `algorithm` the client sends, so `/digest-auth/auth/user/passwd/SHA-256` also accepts an MD5 response. httpbin-hono requires the algorithm the route asks for.
+- **`/base64` also accepts standard Base64** (`+`, padding), not just the URL-safe alphabet.
+
+### Simplifications
+
+- **Seeded random bytes differ from httpbin.** `/bytes` and `/stream-bytes` with the same `seed` always return the same bytes, and the two endpoints agree with each other. The bytes are not the ones Python's `random.seed()` would produce.
+- **`/drip` sends bytes in batches of at least 50 ms** instead of sleeping after every byte, so a large `numbytes` doesn't schedule millions of timers. The stream ends with the last byte instead of a final pause.
+- **`/response-headers` echoes only the query parameters.** httpbin also adds the response's own `Content-Type` and `Content-Length` to the JSON body, recalculating until the length is stable.
+- **`OPTIONS` returns `200` for any path.** Flask answers `OPTIONS` only for existing routes, and adds an `Allow` header.
+- **Digest auth details:** the realm is `Fake Realm` (httpbin uses `me@kennethreitz.com`), and nonces are random UUIDs instead of hashes of the client IP and time.
+- **Cookies set by `/cookies/set` have `SameSite=Lax`.** httpbin sets no `SameSite` attribute.
 
 ## License
 

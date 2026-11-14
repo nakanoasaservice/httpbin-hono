@@ -173,6 +173,33 @@ describe("Authentication", () => {
 		});
 	});
 
+	describe("GET /hidden-basic-auth/:user/:passwd", () => {
+		it("should return 200 with correct credentials", async () => {
+			const res = await authentication.request(
+				"/hidden-basic-auth/foo/bar",
+				{ headers: { Authorization: `Basic ${btoa("foo:bar")}` } },
+				env,
+			);
+
+			expect(res.status).toBe(200);
+			expect(await res.json()).toEqual({ authenticated: true, user: "foo" });
+		});
+
+		it.each([
+			["wrong credentials", { Authorization: `Basic ${btoa("foo:nope")}` }],
+			["no credentials", {}],
+		])("should return 404 without a challenge for %s", async (_, headers) => {
+			const res = await authentication.request(
+				"/hidden-basic-auth/foo/bar",
+				{ headers },
+				env,
+			);
+
+			expect(res.status).toBe(404);
+			expect(res.headers.get("www-authenticate")).toBeNull();
+		});
+	});
+
 	describe("GET /bearer", () => {
 		it("should return 200 with valid bearer token", async () => {
 			const token = "abcd1234";
@@ -260,14 +287,17 @@ describe("Authentication", () => {
 			expect(wwwAuth).toContain('qop="auth"');
 		});
 
-		it("should return 400 with invalid qop", async () => {
+		it("should offer both qop values for an unknown qop, like httpbin", async () => {
 			const res = await authentication.request(
 				"/digest-auth/invalid/foo/bar",
 				{},
 				env,
 			);
 
-			expect(res.status).toBe(400);
+			expect(res.status).toBe(401);
+			expect(res.headers.get("www-authenticate")).toContain(
+				'qop="auth, auth-int"',
+			);
 		});
 
 		it("should return 401 with non-Digest authorization header", async () => {
@@ -437,14 +467,15 @@ describe("Authentication", () => {
 			expect(wwwAuth).toContain("algorithm=MD5");
 		});
 
-		it("should return 400 with invalid algorithm", async () => {
+		it("should fall back to MD5 for an unknown algorithm, like httpbin", async () => {
 			const res = await authentication.request(
 				"/digest-auth/auth/foo/bar/INVALID",
 				{},
 				env,
 			);
 
-			expect(res.status).toBe(400);
+			expect(res.status).toBe(401);
+			expect(res.headers.get("www-authenticate")).toContain("algorithm=MD5");
 		});
 
 		it("should support SHA-256 algorithm", async () => {
@@ -551,7 +582,7 @@ describe("Authentication", () => {
 			expect(wwwAuth).toContain("algorithm=MD5");
 		});
 
-		it("should return stale=true when stale_after is 0", async () => {
+		it("should set the stale_after cookie on the first challenge", async () => {
 			const res = await authentication.request(
 				"/digest-auth/auth/foo/bar/MD5/0",
 				{},
@@ -559,8 +590,10 @@ describe("Authentication", () => {
 			);
 
 			expect(res.status).toBe(401);
-			const wwwAuth = res.headers.get("www-authenticate");
-			expect(wwwAuth).toContain("stale=true");
+			expect(res.headers.get("www-authenticate")).not.toMatch(/stale=true/i);
+			expect(res.headers.getSetCookie()).toContainEqual(
+				expect.stringContaining("stale_after=0"),
+			);
 		});
 
 		it("should not return stale when stale_after is never", async () => {
@@ -572,7 +605,7 @@ describe("Authentication", () => {
 
 			expect(res.status).toBe(401);
 			const wwwAuth = res.headers.get("www-authenticate");
-			expect(wwwAuth).not.toContain("stale=true");
+			expect(wwwAuth).not.toMatch(/stale=true/i);
 		});
 
 		it("should support auth-int qop", async () => {
@@ -652,6 +685,7 @@ describe("Authentication", () => {
 				qop?: string | null;
 				cnonce?: string | null;
 				nc?: string | null;
+				cookie?: string;
 			} = {},
 		) {
 			const header = await makeDigestAuthHeader(
@@ -666,11 +700,11 @@ describe("Authentication", () => {
 				options.cnonce === undefined ? "0a4f113b" : options.cnonce,
 				options.nc === undefined ? "00000001" : options.nc,
 			);
-			return authentication.request(
-				path,
-				{ headers: { Authorization: header } },
-				env,
-			);
+			const headers: Record<string, string> = { Authorization: header };
+			if (options.cookie) {
+				headers["Cookie"] = options.cookie;
+			}
+			return authentication.request(path, { headers }, env);
 		}
 
 		it("should accept SHA-512", async () => {
@@ -732,14 +766,84 @@ describe("Authentication", () => {
 			expect(res.status).toBe(200);
 		});
 
-		it("should not include algorithm in the challenge of the short route", async () => {
+		it("should advertise MD5 in the challenge of the short route", async () => {
 			const res = await authentication.request(
 				"/digest-auth/auth/foo/bar",
 				{},
 				env,
 			);
 
-			expect(res.headers.get("www-authenticate")).not.toContain("algorithm");
+			expect(res.headers.get("www-authenticate")).toContain("algorithm=MD5");
+		});
+
+		it("should report a stale nonce once stale_after reaches 0", async () => {
+			const path = "/digest-auth/auth/foo/bar/MD5/1";
+
+			// stale_after=1: one successful login, which counts the cookie down to 0
+			const first = await digestRequest(path, {
+				algorithm: "MD5",
+				cookie: "stale_after=1",
+			});
+			expect(first.status).toBe(200);
+			expect(first.headers.getSetCookie()).toContainEqual(
+				expect.stringContaining("stale_after=0"),
+			);
+
+			// stale_after=0: valid credentials, but the nonce is now stale
+			const second = await digestRequest(path, {
+				algorithm: "MD5",
+				cookie: "stale_after=0",
+			});
+			expect(second.status).toBe(401);
+			expect(second.headers.get("www-authenticate")).toContain("stale=TRUE");
+		});
+
+		it("should report a reused nonce as stale", async () => {
+			const res = await digestRequest("/digest-auth/auth/foo/bar", {
+				cookie: `last_nonce=${nonce}`,
+			});
+
+			expect(res.status).toBe(401);
+			expect(res.headers.get("www-authenticate")).toContain("stale=TRUE");
+		});
+
+		it("should remember the nonce of a failed attempt", async () => {
+			const res = await digestRequest("/digest-auth/auth/foo/bar", {
+				password: "wrong",
+			});
+
+			expect(res.status).toBe(401);
+			expect(res.headers.getSetCookie()).toContainEqual(
+				expect.stringContaining(`last_nonce=${nonce}`),
+			);
+		});
+
+		describe("?require-cookie=true", () => {
+			const path = "/digest-auth/auth/foo/bar?require-cookie=true";
+
+			it("should challenge when no cookies are sent", async () => {
+				const res = await digestRequest(path);
+
+				expect(res.status).toBe(401);
+				expect(res.headers.getSetCookie()).toContainEqual(
+					expect.stringContaining("fake=fake_value"),
+				);
+			});
+
+			it("should return 403 when the challenge cookie is missing", async () => {
+				const res = await digestRequest(path, { cookie: "other=1" });
+
+				expect(res.status).toBe(403);
+				expect(await res.json()).toEqual({
+					errors: ["missing cookie set on challenge"],
+				});
+			});
+
+			it("should authenticate with the challenge cookie", async () => {
+				const res = await digestRequest(path, { cookie: "fake=fake_value" });
+
+				expect(res.status).toBe(200);
+			});
 		});
 	});
 });

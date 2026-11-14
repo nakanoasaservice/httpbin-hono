@@ -2,6 +2,7 @@ import { type Context, Hono } from "hono";
 
 import { serveAsset } from "../utils/assets";
 import { getHeaders, getOrigin } from "../utils/headers";
+import { formatJSON, skipPrettyJSON } from "../utils/pretty-json";
 
 const DENY_ASCII_ART = `
           .-''''''-.
@@ -19,20 +20,62 @@ const DENY_ASCII_ART = `
 export const responseFormats = new Hono<{ Bindings: Env }>();
 
 /**
- * Common body of the /gzip, /deflate and /brotli responses
+ * JSON response for /gzip, /deflate and /brotli, actually encoded with that
+ * Content-Encoding (httpbin compresses regardless of Accept-Encoding)
+ * Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/filters.py
  */
-function encodingInfo(c: Context) {
-	return {
+async function encodedJSON(
+	c: Context,
+	flag: "gzipped" | "deflated" | "brotli",
+	encoding: "gzip" | "deflate" | "br",
+): Promise<Response> {
+	const json = formatJSON({
+		[flag]: true,
 		headers: getHeaders(c),
 		method: c.req.method,
 		origin: getOrigin(c),
+	});
+	const headers = {
+		"Content-Type": "application/json",
+		"Content-Encoding": encoding,
 	};
+
+	if (encoding === "br") {
+		// workerd's CompressionStream has no brotli. With the default
+		// encodeBody: "automatic", the runtime brotli-compresses the body on send
+		// (brotli_content_encoding is on by default since 2024-04-29).
+		return skipPrettyJSON(new Response(json, { headers }));
+	}
+
+	const compressed = await new Response(
+		new Blob([json]).stream().pipeThrough(new CompressionStream(encoding)),
+	).arrayBuffer();
+	return skipPrettyJSON(
+		new Response(compressed, { headers, encodeBody: "manual" }),
+	);
 }
 
 // view_html_page
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L247
 responseFormats.get("/html", async (c) => {
 	return serveAsset(c, "/templates/moby.html", "text/html");
+});
+
+// view_landing_page
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L241
+// legacy.html is pre-rendered from httpbin's templates/index.html + httpbin.1.html
+responseFormats.get("/legacy", (c) => {
+	return serveAsset(c, "/templates/legacy.html", "text/html; charset=utf-8");
+});
+
+// view_forms_post
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L850
+responseFormats.get("/forms/post", (c) => {
+	return serveAsset(
+		c,
+		"/templates/forms-post.html",
+		"text/html; charset=utf-8",
+	);
 });
 
 // view_robots_page
@@ -60,19 +103,19 @@ responseFormats.get("/deny", (c) => {
 // view_gzip_encoded_content
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L488
 responseFormats.get("/gzip", (c) => {
-	return c.json({ gzipped: true, ...encodingInfo(c) });
+	return encodedJSON(c, "gzipped", "gzip");
 });
 
 // view_deflate_encoded_content
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L505
 responseFormats.get("/deflate", (c) => {
-	return c.json({ deflated: true, ...encodingInfo(c) });
+	return encodedJSON(c, "deflated", "deflate");
 });
 
 // view_brotli_encoded_content
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L522
 responseFormats.get("/brotli", (c) => {
-	return c.json({ brotli: true, ...encodingInfo(c) });
+	return encodedJSON(c, "brotli", "br");
 });
 
 // encoding

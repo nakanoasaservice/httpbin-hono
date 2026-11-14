@@ -12,10 +12,12 @@ import { responseFormats } from "./routes/response-formats";
 import { responseInspection } from "./routes/response-inspection";
 import { statusCodes } from "./routes/status-codes";
 import spec from "./spec.json";
+import { cors } from "./utils/cors";
 import { prettyJSON } from "./utils/pretty-json";
 
 const app = new Hono();
 
+app.use(cors);
 app.use(prettyJSON);
 
 app.get("/spec.json", (c) => {

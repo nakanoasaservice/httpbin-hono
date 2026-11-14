@@ -1,4 +1,5 @@
 import { type Context, Hono } from "hono";
+import { getCookie, setCookie } from "hono/cookie";
 
 import { decodeBase64 } from "../utils/base64";
 
@@ -85,41 +86,51 @@ async function checkDigestAuth(
 	return (await hexDigest(algorithm, KD)) === response;
 }
 
-// basic_auth
-// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L945
-authentication.get("/basic-auth/:user/:passwd", async (c) => {
-	const user = c.req.param("user");
-	const passwd = c.req.param("passwd");
-
+/**
+ * Check Basic credentials against user/passwd
+ * Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py#L258
+ */
+function checkBasicAuth(c: Context, user: string, passwd: string): boolean {
 	const authHeader = c.req.header("authorization");
-
 	if (!authHeader?.startsWith("Basic ")) {
-		return c.body(null, 401, {
-			"WWW-Authenticate": `Basic realm="${REALM}"`,
-		});
+		return false;
 	}
 
 	let credentials: string;
 	try {
 		credentials = decodeBase64(authHeader.substring(6));
 	} catch {
-		credentials = "";
+		return false;
 	}
 	// Only the first ":" separates user and password (RFC 7617)
 	const separator = credentials.indexOf(":");
-	const providedUser = credentials.slice(0, separator);
-	const providedPasswd = credentials.slice(separator + 1);
+	return (
+		separator !== -1 &&
+		credentials.slice(0, separator) === user &&
+		credentials.slice(separator + 1) === passwd
+	);
+}
 
-	if (separator === -1 || providedUser !== user || providedPasswd !== passwd) {
+// basic_auth
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L945
+authentication.get("/basic-auth/:user/:passwd", (c) => {
+	const user = c.req.param("user");
+	if (!checkBasicAuth(c, user, c.req.param("passwd"))) {
 		return c.body(null, 401, {
 			"WWW-Authenticate": `Basic realm="${REALM}"`,
 		});
 	}
+	return c.json({ authenticated: true, user });
+});
 
-	return c.json({
-		authenticated: true,
-		user: user,
-	});
+// hidden_basic_auth
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L973
+authentication.get("/hidden-basic-auth/:user/:passwd", (c) => {
+	const user = c.req.param("user");
+	if (!checkBasicAuth(c, user, c.req.param("passwd"))) {
+		return c.body(null, 404);
+	}
+	return c.json({ authenticated: true, user });
 });
 
 // bearer_auth
@@ -140,55 +151,100 @@ authentication.get("/bearer", (c) => {
 });
 
 /**
+ * Digest challenge (401). Like httpbin, an unknown qop offers both.
+ * Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py#L452
+ */
+function digestChallenge(
+	c: Context,
+	qop: string | undefined,
+	algorithm: string,
+	stale: boolean,
+) {
+	const random = () => crypto.randomUUID().replaceAll("-", "");
+	let challenge = `Digest realm="${REALM}", nonce="${random()}", opaque="${random()}", qop="${qop ?? "auth, auth-int"}", algorithm=${algorithm}`;
+	if (stale) {
+		challenge += ", stale=TRUE";
+	}
+	return c.body(null, 401, { "WWW-Authenticate": challenge });
+}
+
+/**
  * Shared handler for the three /digest-auth routes.
  * `algorithm` and `stale_after` are absent on the shorter routes.
+ *
+ * Like httpbin, state between requests lives in cookies: `stale_after` counts
+ * down successful logins until the nonce is reported stale, `last_nonce`
+ * makes a reused nonce stale, and `fake` backs `?require-cookie=true`.
+ * Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1092
  */
 async function digestAuth(c: Context) {
-	const qop = c.req.param("qop");
+	const qopParam = c.req.param("qop");
+	const qop =
+		qopParam === "auth" || qopParam === "auth-int" ? qopParam : undefined;
 	const user = c.req.param("user") ?? "";
 	const passwd = c.req.param("passwd") ?? "";
-	const algorithmParam = c.req.param("algorithm");
-	const staleAfter = c.req.param("stale_after");
+	const algorithmParam = c.req.param("algorithm") ?? "MD5";
+	const algorithm = DIGEST_ALGORITHMS.includes(algorithmParam)
+		? algorithmParam
+		: "MD5";
+	const staleAfter = c.req.param("stale_after") ?? "never";
+	const requireCookie = ["1", "t", "true"].includes(
+		c.req.query("require-cookie")?.toLowerCase() ?? "",
+	);
 
-	if (qop !== "auth" && qop !== "auth-int") {
-		return c.body("Invalid value for qop", 400);
-	}
-	if (
-		algorithmParam !== undefined &&
-		!DIGEST_ALGORITHMS.includes(algorithmParam)
-	) {
-		return c.body("Invalid value for algorithm", 400);
-	}
-
-	const algorithm = algorithmParam ?? "MD5";
-	const staleAfterNum = Number.parseInt(staleAfter ?? "", 10);
-	const stale = staleAfter !== "never" && staleAfterNum <= 0;
+	const cookies = getCookie(c);
+	const setStateCookie = (name: string, value: string) =>
+		setCookie(c, name, value, { path: "/" });
 
 	const authParams = parseDigestAuth(c.req.header("authorization"));
-	const url = new URL(c.req.url);
-
-	if (
-		!authParams ||
-		!(await checkDigestAuth(
-			authParams,
-			user,
-			passwd,
-			c.req.method,
-			url.pathname + url.search,
-			await c.req.arrayBuffer(),
-			algorithm,
-		))
-	) {
-		let challenge = `Digest realm="${REALM}", nonce="${crypto.randomUUID().replaceAll("-", "")}", qop="${qop}"`;
-		if (algorithmParam) {
-			challenge += `, algorithm=${algorithmParam}`;
-		}
-		if (stale) {
-			challenge += ", stale=true";
-		}
-		return c.body(null, 401, { "WWW-Authenticate": challenge });
+	if (!authParams || (requireCookie && !c.req.header("cookie"))) {
+		setStateCookie("stale_after", staleAfter);
+		setStateCookie("fake", "fake_value");
+		return digestChallenge(c, qop, algorithm, false);
 	}
 
+	if (requireCookie && cookies["fake"] !== "fake_value") {
+		setStateCookie("fake", "fake_value");
+		return c.json({ errors: ["missing cookie set on challenge"] }, 403);
+	}
+
+	const nonce = authParams["nonce"] ?? "";
+	const staleAfterCookie = cookies["stale_after"];
+	if (
+		(cookies["last_nonce"] !== undefined && nonce === cookies["last_nonce"]) ||
+		staleAfterCookie === "0"
+	) {
+		setStateCookie("stale_after", staleAfter);
+		setStateCookie("last_nonce", nonce);
+		setStateCookie("fake", "fake_value");
+		return digestChallenge(c, qop, algorithm, true);
+	}
+
+	const url = new URL(c.req.url);
+	const valid = await checkDigestAuth(
+		authParams,
+		user,
+		passwd,
+		c.req.method,
+		url.pathname + url.search,
+		await c.req.arrayBuffer(),
+		algorithm,
+	);
+	if (!valid) {
+		setStateCookie("stale_after", staleAfter);
+		setStateCookie("last_nonce", nonce);
+		setStateCookie("fake", "fake_value");
+		return digestChallenge(c, qop, algorithm, false);
+	}
+
+	setStateCookie("fake", "fake_value");
+	if (staleAfterCookie) {
+		const remaining = Number.parseInt(staleAfterCookie, 10);
+		setStateCookie(
+			"stale_after",
+			Number.isNaN(remaining) ? "never" : String(remaining - 1),
+		);
+	}
 	return c.json({ authenticated: true, user });
 }
 
