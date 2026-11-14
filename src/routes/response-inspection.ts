@@ -1,7 +1,7 @@
 import { Hono } from "hono";
 
-import { getHeaders, getOrigin } from "../utils/headers";
 import { getQueryParams } from "../utils/query";
+import { requestInfo } from "../utils/request-info";
 
 export const responseInspection = new Hono();
 
@@ -47,19 +47,10 @@ responseInspection.get("/cache", (c) => {
 	}
 
 	// Return same as GET /get with Last-Modified and ETag headers
-	return c.json(
-		{
-			args: getQueryParams(c),
-			headers: getHeaders(c),
-			origin: getOrigin(c),
-			url: c.req.url,
-		},
-		200,
-		{
-			"Last-Modified": new Date().toUTCString(),
-			ETag: crypto.randomUUID().replaceAll("-", ""),
-		},
-	);
+	return c.json(requestInfo(c), 200, {
+		"Last-Modified": new Date().toUTCString(),
+		ETag: crypto.randomUUID().replaceAll("-", ""),
+	});
 });
 
 // etag
@@ -80,16 +71,7 @@ responseInspection.get("/etag/:etag", (c) => {
 	}
 
 	// Special cases don't apply, return normal response
-	return c.json(
-		{
-			args: getQueryParams(c),
-			headers: getHeaders(c),
-			origin: getOrigin(c),
-			url: c.req.url,
-		},
-		200,
-		{ ETag: etag },
-	);
+	return c.json(requestInfo(c), 200, { ETag: etag });
 });
 
 // cache_control
@@ -97,14 +79,7 @@ responseInspection.get("/etag/:etag", (c) => {
 responseInspection.get("/cache/:value", (c) => {
 	const value = c.req.param("value");
 
-	return c.json(
-		{
-			args: getQueryParams(c),
-			headers: getHeaders(c),
-			origin: getOrigin(c),
-			url: c.req.url,
-		},
-		200,
-		{ "Cache-Control": `public, max-age=${value}` },
-	);
+	return c.json(requestInfo(c), 200, {
+		"Cache-Control": `public, max-age=${value}`,
+	});
 });

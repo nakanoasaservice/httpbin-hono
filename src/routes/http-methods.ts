@@ -1,44 +1,15 @@
 import { type Context, Hono } from "hono";
 
-import { getRequestBodyData } from "../utils/body";
-import { getHeaders, getOrigin } from "../utils/headers";
-import { getQueryParams } from "../utils/query";
+import { requestInfo, requestInfoWithBody } from "../utils/request-info";
 
 export const httpMethods = new Hono();
 
 // view_get
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L367
-httpMethods.get("/get", async (c) => {
-	const args = getQueryParams(c);
-	const headers = getHeaders(c);
-	const origin = getOrigin(c);
-	const url = c.req.url;
-
-	return c.json({
-		args,
-		headers,
-		origin,
-		url,
-	});
-});
+httpMethods.get("/get", (c) => c.json(requestInfo(c)));
 
 async function handleRequest(c: Context) {
-	const args = getQueryParams(c);
-	const { form, files, data, json } = await getRequestBodyData(c);
-	const origin = getOrigin(c);
-	const headers = getHeaders(c);
-	const url = c.req.url;
-
-	return c.json({
-		args,
-		data,
-		files,
-		form,
-		headers,
-		json,
-		origin,
-		url,
-	});
+	return c.json(await requestInfoWithBody(c));
 }
 
 // view_post

@@ -13,38 +13,27 @@ function toLowerKeys(q: Record<string, string>): Record<string, string> {
 }
 
 /**
- * Build absolute URL from path
+ * Redirect one step down a chain of n redirects that ends at /get
  */
-function buildAbsoluteUrl(c: Context, path: string): string {
-	const url = new URL(c.req.url);
-	return `${url.protocol}//${url.host}${path}`;
-}
-
-// redirect_n_times
-// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L538
-redirects.get("/redirect/:n", (c) => {
-	const n = parseInt(c.req.param("n"), 10);
-
+function redirectChain(c: Context, absolute: boolean) {
+	const n = Number.parseInt(c.req.param("n") ?? "", 10);
 	if (Number.isNaN(n) || n < 1) {
 		return c.json({ error: "Invalid redirect count" }, 400);
 	}
 
-	const absolute = c.req.query("absolute")?.toLowerCase() === "true";
+	const path =
+		n === 1
+			? "/get"
+			: `/${absolute ? "absolute" : "relative"}-redirect/${n - 1}`;
 
-	if (n === 1) {
-		const targetPath = "/get";
-		if (absolute) {
-			return c.redirect(buildAbsoluteUrl(c, targetPath), 302);
-		}
-		return c.redirect(targetPath, 302);
-	}
+	return c.redirect(absolute ? new URL(path, c.req.url).href : path, 302);
+}
 
-	if (absolute) {
-		return c.redirect(buildAbsoluteUrl(c, `/absolute-redirect/${n - 1}`), 302);
-	} else {
-		return c.redirect(`/relative-redirect/${n - 1}`, 302);
-	}
-});
+// redirect_n_times
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L538
+redirects.get("/redirect/:n", (c) =>
+	redirectChain(c, c.req.query("absolute")?.toLowerCase() === "true"),
+);
 
 // redirect_to
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L573
@@ -74,32 +63,8 @@ redirects.on(
 
 // relative_redirect_n_times
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L648
-redirects.get("/relative-redirect/:n", (c) => {
-	const n = parseInt(c.req.param("n"), 10);
-
-	if (Number.isNaN(n) || n < 1) {
-		return c.json({ error: "Invalid redirect count" }, 400);
-	}
-
-	if (n === 1) {
-		return c.redirect("/get", 302);
-	}
-
-	return c.redirect(`/relative-redirect/${n - 1}`, 302);
-});
+redirects.get("/relative-redirect/:n", (c) => redirectChain(c, false));
 
 // absolute_redirect_n_times
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L678
-redirects.get("/absolute-redirect/:n", (c) => {
-	const n = parseInt(c.req.param("n"), 10);
-
-	if (Number.isNaN(n) || n < 1) {
-		return c.json({ error: "Invalid redirect count" }, 400);
-	}
-
-	if (n === 1) {
-		return c.redirect(buildAbsoluteUrl(c, "/get"), 302);
-	}
-
-	return c.redirect(buildAbsoluteUrl(c, `/absolute-redirect/${n - 1}`), 302);
-});
+redirects.get("/absolute-redirect/:n", (c) => redirectChain(c, true));

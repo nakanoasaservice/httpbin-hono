@@ -11,23 +11,21 @@ import { requestInspection } from "./routes/request-inspection";
 import { responseFormats } from "./routes/response-formats";
 import { responseInspection } from "./routes/response-inspection";
 import { statusCodes } from "./routes/status-codes";
-import { default as spec } from "./spec.json";
+import spec from "./spec.json";
 import { prettyJSON } from "./utils/pretty-json";
 
 const app = new Hono();
 
 app.use(prettyJSON);
 
-app.get("/spec.json", async (c) => {
-	spec.host = new URL(c.req.url).host;
-	spec.schemes =
-		new URL(c.req.url).protocol === "https:" ? ["https"] : ["http"];
+app.get("/spec.json", (c) => {
+	const { host, protocol } = new URL(c.req.url);
 
-	return c.json(spec, {
-		headers: {
-			"Cache-Control": "public, max-age=604800",
-		},
-	});
+	// Copy instead of mutating the module-level spec shared across requests
+	return c.json(
+		{ ...spec, host, schemes: [protocol.replace(":", "")] },
+		{ headers: { "Cache-Control": "public, max-age=604800" } },
+	);
 });
 
 app.route("/", httpMethods);

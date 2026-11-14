@@ -1,45 +1,31 @@
-import { Hono } from "hono";
+import { type Context, Hono } from "hono";
+
+import { decodeBase64 } from "../utils/base64";
 
 export const authentication = new Hono();
 
-// Helper functions for Digest authentication
+const REALM = "Fake Realm";
+const DIGEST_ALGORITHMS = ["MD5", "SHA-256", "SHA-512"];
 
 /**
- * Parse Digest authorization header
+ * Parse the key="value" pairs of a Digest authorization header
  */
-function parseDigestAuth(authHeader: string): Record<string, string> | null {
+function parseDigestAuth(
+	authHeader: string | undefined,
+): Record<string, string> | null {
 	if (!authHeader?.startsWith("Digest ")) {
 		return null;
 	}
 
-	const digestString = authHeader.substring(7);
 	const params: Record<string, string> = {};
-
-	// Parse key="value" pairs
-	const regex = /(\w+)=(?:"([^"]*)"|([^,]*))/g;
-	let match: RegExpExecArray | null = regex.exec(digestString);
-	while (match !== null) {
-		const key = match[1];
+	for (const [, key, quoted, bare] of authHeader
+		.substring(7)
+		.matchAll(/(\w+)=(?:"([^"]*)"|([^,]*))/g)) {
 		if (key) {
-			const value = match[2] || match[3] || "";
-			params[key] = value;
+			params[key] = quoted || bare || "";
 		}
-		match = regex.exec(digestString);
 	}
-
 	return params;
-}
-
-/**
- * Generate nonce for Digest authentication
- */
-function generateNonce(): string {
-	const randomBytes = new Uint8Array(16);
-	crypto.getRandomValues(randomBytes);
-	return btoa(String.fromCharCode(...randomBytes))
-		.replace(/\+/g, "-")
-		.replace(/\//g, "_")
-		.replace(/=/g, "");
 }
 
 /**
@@ -55,33 +41,6 @@ async function hexDigest(
 	return Array.from(new Uint8Array(hash), (b) =>
 		b.toString(16).padStart(2, "0"),
 	).join("");
-}
-
-/**
- * Generate Digest challenge response header
- */
-function generateDigestChallenge(
-	realm: string,
-	qop: string | null,
-	algorithm: string | null,
-	stale: boolean = false,
-): string {
-	const nonce = generateNonce();
-	let challenge = `Digest realm="${realm}", nonce="${nonce}"`;
-
-	if (qop) {
-		challenge += `, qop="${qop}"`;
-	}
-
-	if (algorithm) {
-		challenge += `, algorithm=${algorithm}`;
-	}
-
-	if (stale) {
-		challenge += ", stale=true";
-	}
-
-	return challenge;
 }
 
 /**
@@ -136,16 +95,13 @@ authentication.get("/basic-auth/:user/:passwd", async (c) => {
 
 	if (!authHeader?.startsWith("Basic ")) {
 		return c.body(null, 401, {
-			"WWW-Authenticate": 'Basic realm="Fake Realm"',
+			"WWW-Authenticate": `Basic realm="${REALM}"`,
 		});
 	}
 
 	let credentials: string;
 	try {
-		const binary = atob(authHeader.substring(6));
-		credentials = new TextDecoder().decode(
-			Uint8Array.from(binary, (ch) => ch.charCodeAt(0)),
-		);
+		credentials = decodeBase64(authHeader.substring(6));
 	} catch {
 		credentials = "";
 	}
@@ -156,7 +112,7 @@ authentication.get("/basic-auth/:user/:passwd", async (c) => {
 
 	if (separator === -1 || providedUser !== user || providedPasswd !== passwd) {
 		return c.body(null, 401, {
-			"WWW-Authenticate": 'Basic realm="Fake Realm"',
+			"WWW-Authenticate": `Basic realm="${REALM}"`,
 		});
 	}
 
@@ -183,209 +139,70 @@ authentication.get("/bearer", (c) => {
 	});
 });
 
-// digest_auth_md5
-// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1031
-authentication.get("/digest-auth/:qop/:user/:passwd", async (c) => {
+/**
+ * Shared handler for the three /digest-auth routes.
+ * `algorithm` and `stale_after` are absent on the shorter routes.
+ */
+async function digestAuth(c: Context) {
 	const qop = c.req.param("qop");
-	const user = c.req.param("user");
-	const passwd = c.req.param("passwd");
+	const user = c.req.param("user") ?? "";
+	const passwd = c.req.param("passwd") ?? "";
+	const algorithmParam = c.req.param("algorithm");
+	const staleAfter = c.req.param("stale_after");
 
-	// Validate qop parameter
 	if (qop !== "auth" && qop !== "auth-int") {
 		return c.body("Invalid value for qop", 400);
 	}
-
-	const authHeader = c.req.header("authorization");
-	const realm = "Fake Realm";
-
-	// If no authorization header, send challenge
-	if (!authHeader) {
-		const challenge = generateDigestChallenge(realm, qop, null, false);
-		return c.body(null, 401, { "WWW-Authenticate": challenge });
-	}
-
-	// Parse Digest authorization header
-	const authParams = parseDigestAuth(authHeader);
-	if (!authParams) {
-		const challenge = generateDigestChallenge(realm, qop, null, false);
-		return c.body(null, 401, { "WWW-Authenticate": challenge });
-	}
-
-	// Get request URI
-	const url = new URL(c.req.url);
-	const uri = url.pathname + url.search;
-
-	// Check authentication
-	const isValid = await checkDigestAuth(
-		authParams,
-		user,
-		passwd,
-		c.req.method,
-		uri,
-		await c.req.arrayBuffer(),
-		"MD5",
-	);
-
-	if (!isValid) {
-		const challenge = generateDigestChallenge(realm, qop, null, false);
-		return c.body(null, 401, { "WWW-Authenticate": challenge });
-	}
-
-	return c.json({
-		authenticated: true,
-		user: user,
-	});
-});
-
-// digest_auth_nostale
-// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1059
-authentication.get("/digest-auth/:qop/:user/:passwd/:algorithm", async (c) => {
-	const qop = c.req.param("qop");
-	const user = c.req.param("user");
-	const passwd = c.req.param("passwd");
-	const algorithm = c.req.param("algorithm");
-
-	// Validate qop parameter
-	if (qop !== "auth" && qop !== "auth-int") {
-		return c.body("Invalid value for qop", 400);
-	}
-
-	// Validate algorithm parameter
 	if (
-		algorithm !== "MD5" &&
-		algorithm !== "SHA-256" &&
-		algorithm !== "SHA-512"
+		algorithmParam !== undefined &&
+		!DIGEST_ALGORITHMS.includes(algorithmParam)
 	) {
 		return c.body("Invalid value for algorithm", 400);
 	}
 
-	const authHeader = c.req.header("authorization");
-	const realm = "Fake Realm";
+	const algorithm = algorithmParam ?? "MD5";
+	const staleAfterNum = Number.parseInt(staleAfter ?? "", 10);
+	const stale = staleAfter !== "never" && staleAfterNum <= 0;
 
-	// If no authorization header, send challenge
-	if (!authHeader) {
-		const challenge = generateDigestChallenge(realm, qop, algorithm, false);
-		return c.body(null, 401, { "WWW-Authenticate": challenge });
-	}
-
-	// Parse Digest authorization header
-	const authParams = parseDigestAuth(authHeader);
-	if (!authParams) {
-		const challenge = generateDigestChallenge(realm, qop, algorithm, false);
-		return c.body(null, 401, { "WWW-Authenticate": challenge });
-	}
-
-	// Get request URI
+	const authParams = parseDigestAuth(c.req.header("authorization"));
 	const url = new URL(c.req.url);
-	const uri = url.pathname + url.search;
 
-	// Check authentication
-	const isValid = await checkDigestAuth(
-		authParams,
-		user,
-		passwd,
-		c.req.method,
-		uri,
-		await c.req.arrayBuffer(),
-		algorithm,
-	);
-
-	if (!isValid) {
-		const challenge = generateDigestChallenge(realm, qop, algorithm, false);
+	if (
+		!authParams ||
+		!(await checkDigestAuth(
+			authParams,
+			user,
+			passwd,
+			c.req.method,
+			url.pathname + url.search,
+			await c.req.arrayBuffer(),
+			algorithm,
+		))
+	) {
+		let challenge = `Digest realm="${REALM}", nonce="${crypto.randomUUID().replaceAll("-", "")}", qop="${qop}"`;
+		if (algorithmParam) {
+			challenge += `, algorithm=${algorithmParam}`;
+		}
+		if (stale) {
+			challenge += ", stale=true";
+		}
 		return c.body(null, 401, { "WWW-Authenticate": challenge });
 	}
 
-	return c.json({
-		authenticated: true,
-		user: user,
-	});
-});
+	return c.json({ authenticated: true, user });
+}
+
+// digest_auth_md5
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1031
+authentication.get("/digest-auth/:qop/:user/:passwd", digestAuth);
+
+// digest_auth_nostale
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1059
+authentication.get("/digest-auth/:qop/:user/:passwd/:algorithm", digestAuth);
 
 // digest_auth
 // Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L1092
 authentication.get(
 	"/digest-auth/:qop/:user/:passwd/:algorithm/:stale_after",
-	async (c) => {
-		const qop = c.req.param("qop");
-		const user = c.req.param("user");
-		const passwd = c.req.param("passwd");
-		const algorithm = c.req.param("algorithm");
-		const staleAfter = c.req.param("stale_after");
-
-		// Validate qop parameter
-		if (qop !== "auth" && qop !== "auth-int") {
-			return c.body("Invalid value for qop", 400);
-		}
-
-		// Validate algorithm parameter
-		if (
-			algorithm !== "MD5" &&
-			algorithm !== "SHA-256" &&
-			algorithm !== "SHA-512"
-		) {
-			return c.body("Invalid value for algorithm", 400);
-		}
-
-		const authHeader = c.req.header("authorization");
-		const realm = "Fake Realm";
-
-		// Calculate if nonce should be stale
-		const shouldBeStale =
-			staleAfter !== "never" &&
-			!Number.isNaN(parseInt(staleAfter, 10)) &&
-			parseInt(staleAfter, 10) <= 0;
-
-		// If no authorization header, send challenge
-		if (!authHeader) {
-			const challenge = generateDigestChallenge(
-				realm,
-				qop,
-				algorithm,
-				shouldBeStale,
-			);
-			return c.body(null, 401, { "WWW-Authenticate": challenge });
-		}
-
-		// Parse Digest authorization header
-		const authParams = parseDigestAuth(authHeader);
-		if (!authParams) {
-			const challenge = generateDigestChallenge(
-				realm,
-				qop,
-				algorithm,
-				shouldBeStale,
-			);
-			return c.body(null, 401, { "WWW-Authenticate": challenge });
-		}
-
-		// Get request URI
-		const url = new URL(c.req.url);
-		const uri = url.pathname + url.search;
-
-		// Check authentication
-		const isValid = await checkDigestAuth(
-			authParams,
-			user,
-			passwd,
-			c.req.method,
-			uri,
-			await c.req.arrayBuffer(),
-			algorithm,
-		);
-
-		if (!isValid) {
-			const challenge = generateDigestChallenge(
-				realm,
-				qop,
-				algorithm,
-				shouldBeStale,
-			);
-			return c.body(null, 401, { "WWW-Authenticate": challenge });
-		}
-
-		return c.json({
-			authenticated: true,
-			user: user,
-		});
-	},
+	digestAuth,
 );

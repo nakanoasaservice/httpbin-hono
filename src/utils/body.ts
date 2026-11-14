@@ -17,17 +17,24 @@ import type { Context } from "hono";
  */
 function jsonSafe(
 	buffer: ArrayBuffer,
-	content_type = "application/octet-stream",
+	contentType = "application/octet-stream",
 ): string {
+	return (
+		decodeUtf8(buffer) ??
+		`data:${contentType};base64,${toBase64(new Uint8Array(buffer))}`
+	);
+}
+
+/**
+ * Decode strict UTF-8, or null if the bytes are not valid UTF-8
+ */
+function decodeUtf8(buffer: ArrayBuffer): string | null {
 	try {
-		const str = new TextDecoder("utf-8", {
-			fatal: true,
-			ignoreBOM: false,
-		}).decode(buffer);
-		JSON.stringify(str);
-		return str;
+		return new TextDecoder("utf-8", { fatal: true, ignoreBOM: false }).decode(
+			buffer,
+		);
 	} catch {
-		return `data:${content_type};base64,${toBase64(new Uint8Array(buffer))}`;
+		return null;
 	}
 }
 
@@ -45,16 +52,11 @@ function toBase64(bytes: Uint8Array): string {
 }
 
 /**
- * Parse JSON from ArrayBuffer, returning null if parsing fails
+ * Parse JSON, returning null if the body is not valid UTF-8 JSON
  */
-function parseJson(rawData: ArrayBuffer): unknown {
+function parseJson(text: string | null): unknown {
 	try {
-		return JSON.parse(
-			new TextDecoder("utf-8", {
-				fatal: true,
-				ignoreBOM: false,
-			}).decode(rawData),
-		);
+		return text === null ? null : JSON.parse(text);
 	} catch {
 		return null;
 	}
@@ -74,7 +76,7 @@ function semiflattenAdd(
 	value: string,
 ) {
 	const existing = multi[key];
-	if (existing) {
+	if (existing !== undefined) {
 		if (Array.isArray(existing)) {
 			existing.push(value);
 		} else {
@@ -108,24 +110,16 @@ export async function getRequestBodyData(c: Context): Promise<{
 			const formData = await c.req.parseBody({ all: true });
 
 			for (const [key, value] of Object.entries(formData)) {
-				if (Array.isArray(value)) {
-					for (const item of value) {
-						if (item instanceof File) {
-							const arrayBuffer = await item.arrayBuffer();
-							const jsonSafeValue = jsonSafe(arrayBuffer, item.type);
-
-							semiflattenAdd(files, key, jsonSafeValue);
-						} else {
-							semiflattenAdd(form, key, item);
-						}
+				for (const item of [value].flat()) {
+					if (item instanceof File) {
+						semiflattenAdd(
+							files,
+							key,
+							jsonSafe(await item.arrayBuffer(), item.type),
+						);
+					} else {
+						semiflattenAdd(form, key, item);
 					}
-				} else if (value instanceof File) {
-					const arrayBuffer = await value.arrayBuffer();
-					const jsonSafeValue = jsonSafe(arrayBuffer, value.type);
-
-					files[key] = jsonSafeValue;
-				} else {
-					form[key] = value;
 				}
 			}
 		} catch {
@@ -138,11 +132,12 @@ export async function getRequestBodyData(c: Context): Promise<{
 		}
 
 	const rawData = await c.req.arrayBuffer();
+	const text = decodeUtf8(rawData);
 
 	return {
-		data: jsonSafe(rawData),
+		data: text ?? jsonSafe(rawData),
 		files,
 		form,
-		json: parseJson(rawData),
+		json: parseJson(text),
 	};
 }
