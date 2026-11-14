@@ -16,6 +16,7 @@ describe("App", () => {
 			expect(spec.host).toBe("example.com");
 			expect(spec.schemes).toEqual(["https"]);
 			expect(Object.keys(spec.paths).length).toBeGreaterThan(0);
+			expect(spec.paths).toHaveProperty("/forms/post");
 		});
 
 		it("should not leak host or scheme between requests", async () => {

@@ -734,6 +734,18 @@
 				"tags": ["Response inspection"]
 			}
 		},
+		"/forms/post": {
+			"get": {
+				"produces": ["text/html"],
+				"responses": {
+					"200": {
+						"description": "An HTML form."
+					}
+				},
+				"summary": "Returns an HTML form that submits to /post, for testing browser form encoding.",
+				"tags": ["Response formats"]
+			}
+		},
 		"/get": {
 			"get": {
 				"produces": ["application/json"],
