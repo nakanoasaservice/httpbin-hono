@@ -5,7 +5,7 @@ import { getHeaders, getOrigin } from "../utils/headers";
 export const requestInspection = new Hono();
 
 // view_origin
-// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L303
+// Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/core.py#L300
 requestInspection.get("/ip", (c) => {
 	const origin = getOrigin(c);
 

@@ -63,11 +63,11 @@ For generating/synchronizing types based on your Worker configuration, run:
 bun run cf-typegen
 ```
 
-Pass the `Env` as generics when instantiating `Hono`:
+Routes that use bindings (such as `ASSETS`) pass the `Env` as generics when instantiating `Hono`:
 
 ```ts
-// src/index.ts
-const app = new Hono<{ Bindings: Env }>()
+// src/routes/images.ts
+export const images = new Hono<{ Bindings: Env }>();
 ```
 
 ## Code Quality

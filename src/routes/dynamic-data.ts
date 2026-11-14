@@ -65,17 +65,15 @@ dynamicData.get("/bytes/:n", (c) => {
 	// Support for seed parameter
 	const seed = c.req.query("seed");
 	if (seed) {
-		// Use seed-based random generation if seed is specified
-		// Use simple linear congruential generator (similar to original implementation's random.randint)
+		// Deterministic bytes for a given seed, via a linear congruential generator.
+		// Not byte-compatible with httpbin, which uses Python's random.seed/randint.
 		const seedNum = Number(seed);
 		if (!Number.isInteger(seedNum)) {
 			return c.json({ error: "Invalid seed. Must be an integer" }, 400);
 		}
-		// Set seed (simple implementation)
 		let randomSeed = seedNum;
 		const bytes = new Uint8Array(limitedN);
 		for (let i = 0; i < limitedN; i++) {
-			// Generate pseudo-random number using linear congruential generator
 			randomSeed = (randomSeed * 1103515245 + 12345) & 0x7fffffff;
 			bytes[i] = randomSeed % 256;
 		}

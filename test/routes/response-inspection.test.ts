@@ -286,12 +286,9 @@ describe("Response Inspection", () => {
 			expect(res.headers.get("x-custom-header")).toBe("test");
 
 			const data = (await res.json()) as ResponseHeadersResponse;
-			// Query parameter keys are preserved as-is (case-sensitive)
-			// But JSON keys might be normalized to lowercase
-			expect(data["Content-Type"] || data["content-type"]).toBe(
-				"application/json",
-			);
-			expect(data["X-Custom-Header"] || data["x-custom-header"]).toBe("test");
+			// Query parameter keys are echoed as-is (case preserved)
+			expect(data["Content-Type"]).toBe("application/json");
+			expect(data["X-Custom-Header"]).toBe("test");
 		});
 
 		it("should include response headers in JSON body", async () => {
@@ -303,7 +300,7 @@ describe("Response Inspection", () => {
 
 			expect(res.status).toBe(200);
 			const data = (await res.json()) as ResponseHeadersResponse;
-			expect(data["X-Test-Header"] || data["x-test-header"]).toBe("test-value");
+			expect(data["X-Test-Header"]).toBe("test-value");
 		});
 
 		it("should handle multiple values for the same header", async () => {
@@ -318,8 +315,8 @@ describe("Response Inspection", () => {
 			expect(headerValues).toBeTruthy();
 
 			const data = (await res.json()) as ResponseHeadersResponse;
-			// Multiple values should be represented as array or single value
-			expect(data["X-Multiple"] || data["x-multiple"]).toBeTruthy();
+			expect(headerValues).toBe("value1, value2");
+			expect(data["X-Multiple"]).toEqual(["value1", "value2"]);
 		});
 
 		it("should handle URL-encoded header values", async () => {
@@ -332,7 +329,8 @@ describe("Response Inspection", () => {
 
 			expect(res.status).toBe(200);
 			const data = (await res.json()) as ResponseHeadersResponse;
-			expect(data["X-Encoded"] || data["x-encoded"]).toBeTruthy();
+			expect(data["X-Encoded"]).toBe("test%20value");
+			expect(res.headers.get("x-encoded")).toBe("test%20value");
 		});
 
 		it("should handle special characters in header names", async () => {
@@ -344,7 +342,7 @@ describe("Response Inspection", () => {
 
 			expect(res.status).toBe(200);
 			const data = (await res.json()) as ResponseHeadersResponse;
-			expect(data["X-Test-123"] || data["x-test-123"]).toBe("value");
+			expect(data["X-Test-123"]).toBe("value");
 		});
 	});
 });

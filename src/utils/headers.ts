@@ -46,7 +46,7 @@ export function getOrigin(c: Context): string {
 }
 
 // Environment headers that should be hidden by default
-// Reference: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py
+// Reference: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py#L40
 // Cloudflare headers reference: https://developers.cloudflare.com/fundamentals/reference/http-headers/
 const ENV_HEADERS = [
 	// Original httpbin environment headers

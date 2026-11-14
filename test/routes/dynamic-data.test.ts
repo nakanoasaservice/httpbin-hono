@@ -1,5 +1,5 @@
 import { env } from "cloudflare:workers";
-import { describe, expect, it } from "vitest";
+import { describe, expect, it, vi } from "vitest";
 
 import { dynamicData } from "../../src/routes/dynamic-data";
 
@@ -57,7 +57,31 @@ describe("Dynamic Data", () => {
 		});
 
 		it("should decode URL-safe Base64 string with dashes", async () => {
-			// "ø" encoded in Base64URL: w7g
+			// "~~~" is "fn5+" in standard Base64 and "fn5-" in Base64URL
+			const res = await dynamicData.request("/base64/fn5-", {}, env);
+
+			expect(res.status).toBe(200);
+			expect(await res.text()).toBe("~~~");
+		});
+
+		it("should decode standard Base64 with + and padding", async () => {
+			const res = await dynamicData.request("/base64/fn5+", {}, env);
+			const padded = await dynamicData.request("/base64/w7g=", {}, env);
+
+			expect(await res.text()).toBe("~~~");
+			expect(await padded.text()).toBe("ø");
+		});
+
+		it("should return error message for Base64 that is not valid UTF-8", async () => {
+			// "_w" decodes to the single byte 0xFF
+			const res = await dynamicData.request("/base64/_w", {}, env);
+
+			expect(await res.text()).toBe(
+				"Incorrect Base64 data try: SFRUUEJJTiBpcyBhd2Vzb21l", // cspell:disable-line
+			);
+		});
+
+		it("should decode unpadded Base64URL string for ø", async () => {
 			const encoded = "w7g"; // Base64URL for "ø"
 			const res = await dynamicData.request(`/base64/${encoded}`, {}, env);
 
@@ -225,18 +249,26 @@ describe("Dynamic Data", () => {
 			expect(data.url).toContain(`/delay/${delay}`);
 		});
 
-		it.skip("should limit delay to 10 seconds maximum", async () => {
-			const delay = 15; // Request 15 seconds
-			const startTime = Date.now();
-			const res = await dynamicData.request(`/delay/${delay}`, {}, env);
-			const endTime = Date.now();
+		it("should limit delay to 10 seconds maximum", async () => {
+			vi.useFakeTimers();
+			try {
+				let settled = false;
+				const pending = Promise.resolve(
+					dynamicData.request("/delay/15", {}, env),
+				).finally(() => {
+					settled = true;
+				});
 
-			expect(res.status).toBe(200);
-			const elapsed = (endTime - startTime) / 1000;
-			// Should be limited to 10 seconds
-			expect(elapsed).toBeLessThan(11);
-			expect(elapsed).toBeGreaterThanOrEqual(9.5);
-		}, 12000); // 12 second timeout
+				await vi.advanceTimersByTimeAsync(9_999);
+				expect(settled).toBe(false);
+
+				await vi.advanceTimersByTimeAsync(1);
+				const res = await pending;
+				expect(res.status).toBe(200);
+			} finally {
+				vi.useRealTimers();
+			}
+		});
 
 		it("should return request information after delay", async () => {
 			const delay = 0.1;

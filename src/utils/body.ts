@@ -5,10 +5,10 @@
 import type { Context } from "hono";
 
 /**
- * Returns JSON-safe version of `string`.
- * If `buf` is a Unicode string or a valid UTF-8, it is returned unmodified,
+ * Returns a JSON-safe string for `buffer`.
+ * If `buffer` is valid UTF-8, it is returned as a decoded string,
  * as it can safely be encoded to JSON string.
- * If `buf` contains raw/binary data, it is Base64-encoded, formatted and
+ * If `buffer` contains raw/binary data, it is Base64-encoded, formatted and
  * returned according to "data" URL scheme (RFC2397). Since JSON is not
  * suitable for binary data, some additional encoding was necessary; "data"
  * URL scheme was chosen for its simplicity.

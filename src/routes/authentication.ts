@@ -45,7 +45,7 @@ async function hexDigest(
 
 /**
  * Check Digest authentication (RFC 2617 / RFC 7616)
- * Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py#L300
+ * Original: https://github.com/postmanlabs/httpbin/blob/f8ec666b4d1b654e4ff6aedd356f510dcac09f83/httpbin/helpers.py#L311 (response) and #L355 (check_digest_auth)
  */
 async function checkDigestAuth(
 	authParams: Record<string, string>,
