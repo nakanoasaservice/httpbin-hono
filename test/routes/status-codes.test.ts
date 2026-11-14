@@ -148,6 +148,15 @@ describe("Status Codes", () => {
 	});
 
 	describe("Invalid status codes", () => {
+		it.each(["100", "199", "600", "999", "200,999"])(
+			"should return 400 (not 500) for unsupported status %s",
+			async (codes) => {
+				const res = await statusCodes.request(`/status/${codes}`, {}, env);
+
+				expect(res.status).toBe(400);
+			},
+		);
+
 		it("should return 400 for invalid status code", async () => {
 			const res = await statusCodes.request("/status/4!9", {}, env);
 

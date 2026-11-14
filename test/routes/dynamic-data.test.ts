@@ -93,6 +93,12 @@ describe("Dynamic Data", () => {
 	});
 
 	describe("GET /bytes/:n", () => {
+		it("should return 400 for a non-integer seed", async () => {
+			const res = await dynamicData.request("/bytes/10?seed=abc", {}, env);
+
+			expect(res.status).toBe(400);
+		});
+
 		it("should return specified number of bytes", async () => {
 			const n = 10;
 			const res = await dynamicData.request(`/bytes/${n}`, {}, env);
@@ -149,7 +155,7 @@ describe("Dynamic Data", () => {
 			expect(res.status).toBe(400);
 			const data = await res.json();
 			expect(data).toEqual({
-				error: "Invalid byte count. Must be a positive integer",
+				error: "Invalid byte count. Must be a non-negative integer",
 			});
 		});
 
@@ -159,7 +165,7 @@ describe("Dynamic Data", () => {
 			expect(res.status).toBe(400);
 			const data = await res.json();
 			expect(data).toEqual({
-				error: "Invalid byte count. Must be a positive integer",
+				error: "Invalid byte count. Must be a non-negative integer",
 			});
 		});
 

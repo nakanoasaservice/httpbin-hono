@@ -3,6 +3,16 @@ import { describe, expect, it } from "vitest";
 
 import { authentication } from "../../src/routes/authentication";
 
+async function hexDigest(algorithm: string, data: string): Promise<string> {
+	const hash = await crypto.subtle.digest(
+		algorithm,
+		new TextEncoder().encode(data),
+	);
+	return Array.from(new Uint8Array(hash), (b) =>
+		b.toString(16).padStart(2, "0"),
+	).join("");
+}
+
 // Helper function to create Digest auth header (similar to _make_digest_auth_header in test_httpbin.py)
 async function makeDigestAuthHeader(
 	username: string,
@@ -15,115 +25,20 @@ async function makeDigestAuthHeader(
 	qop: string | null = null,
 	cnonce: string | null = null,
 	nc: string | null = null,
+	body = "",
 ): Promise<string> {
-	// Calculate HA1
-	const a1 = `${username}:${realm || ""}:${password}`;
-	let ha1: string;
-	if (algorithm === "SHA-256") {
-		const encoder = new TextEncoder();
-		const hashBuffer = await crypto.subtle.digest(
-			"SHA-256",
-			encoder.encode(a1),
-		);
-		const hashArray = Array.from(new Uint8Array(hashBuffer));
-		ha1 = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-	} else if (algorithm === "SHA-512") {
-		const encoder = new TextEncoder();
-		const hashBuffer = await crypto.subtle.digest(
-			"SHA-512",
-			encoder.encode(a1),
-		);
-		const hashArray = Array.from(new Uint8Array(hashBuffer));
-		ha1 = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-	} else {
-		// MD5 fallback (using SHA-256 first 32 chars)
-		const encoder = new TextEncoder();
-		const hashBuffer = await crypto.subtle.digest(
-			"SHA-256",
-			encoder.encode(a1),
-		);
-		const hashArray = Array.from(new Uint8Array(hashBuffer));
-		ha1 = hashArray
-			.map((b) => b.toString(16).padStart(2, "0"))
-			.join("")
-			.substring(0, 32);
-	}
-
-	// Calculate HA2
-	const a2 = `${method}:${uri}`;
-	let ha2: string;
-	if (algorithm === "SHA-256") {
-		const encoder = new TextEncoder();
-		const hashBuffer = await crypto.subtle.digest(
-			"SHA-256",
-			encoder.encode(a2),
-		);
-		const hashArray = Array.from(new Uint8Array(hashBuffer));
-		ha2 = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-	} else if (algorithm === "SHA-512") {
-		const encoder = new TextEncoder();
-		const hashBuffer = await crypto.subtle.digest(
-			"SHA-512",
-			encoder.encode(a2),
-		);
-		const hashArray = Array.from(new Uint8Array(hashBuffer));
-		ha2 = hashArray.map((b) => b.toString(16).padStart(2, "0")).join("");
-	} else {
-		// MD5 fallback
-		const encoder = new TextEncoder();
-		const hashBuffer = await crypto.subtle.digest(
-			"SHA-256",
-			encoder.encode(a2),
-		);
-		const hashArray = Array.from(new Uint8Array(hashBuffer));
-		ha2 = hashArray
-			.map((b) => b.toString(16).padStart(2, "0"))
-			.join("")
-			.substring(0, 32);
-	}
-
-	// Calculate response
-	let a3: string;
-	if (qop && cnonce && nc) {
-		a3 = `${ha1}:${nonce}:${nc}:${cnonce}:${qop}:${ha2}`;
-	} else {
-		a3 = `${ha1}:${nonce}:${ha2}`;
-	}
-
-	let authResponse: string;
-	if (algorithm === "SHA-256") {
-		const encoder = new TextEncoder();
-		const hashBuffer = await crypto.subtle.digest(
-			"SHA-256",
-			encoder.encode(a3),
-		);
-		const hashArray = Array.from(new Uint8Array(hashBuffer));
-		authResponse = hashArray
-			.map((b) => b.toString(16).padStart(2, "0"))
-			.join("");
-	} else if (algorithm === "SHA-512") {
-		const encoder = new TextEncoder();
-		const hashBuffer = await crypto.subtle.digest(
-			"SHA-512",
-			encoder.encode(a3),
-		);
-		const hashArray = Array.from(new Uint8Array(hashBuffer));
-		authResponse = hashArray
-			.map((b) => b.toString(16).padStart(2, "0"))
-			.join("");
-	} else {
-		// MD5 fallback
-		const encoder = new TextEncoder();
-		const hashBuffer = await crypto.subtle.digest(
-			"SHA-256",
-			encoder.encode(a3),
-		);
-		const hashArray = Array.from(new Uint8Array(hashBuffer));
-		authResponse = hashArray
-			.map((b) => b.toString(16).padStart(2, "0"))
-			.join("")
-			.substring(0, 32);
-	}
+	const alg = algorithm ?? "MD5";
+	const ha1 = await hexDigest(alg, `${username}:${realm || ""}:${password}`);
+	const a2 =
+		qop === "auth-int"
+			? `${method}:${uri}:${await hexDigest(alg, body)}`
+			: `${method}:${uri}`;
+	const ha2 = await hexDigest(alg, a2);
+	const a3 =
+		qop && cnonce && nc
+			? `${ha1}:${nonce}:${nc}:${cnonce}:${qop}:${ha2}`
+			: `${ha1}:${nonce}:${ha2}`;
+	const authResponse = await hexDigest(alg, a3);
 
 	// Build auth header
 	let authHeader = `Digest username="${username}", response="${authResponse}", uri="${uri}", nonce="${nonce}"`;
@@ -175,6 +90,26 @@ type BearerAuthResponse = {
 
 describe("Authentication", () => {
 	describe("GET /basic-auth/:user/:passwd", () => {
+		it("should return 401 (not 500) with malformed base64 credentials", async () => {
+			const res = await authentication.request(
+				"/basic-auth/foo/bar",
+				{ headers: { Authorization: "Basic !!!" } },
+				env,
+			);
+
+			expect(res.status).toBe(401);
+		});
+
+		it("should accept a password containing a colon", async () => {
+			const res = await authentication.request(
+				"/basic-auth/foo/b:a:r",
+				{ headers: { Authorization: `Basic ${btoa("foo:b:a:r")}` } },
+				env,
+			);
+
+			expect(res.status).toBe(200);
+		});
+
 		it("should return 401 without authorization header", async () => {
 			const res = await authentication.request("/basic-auth/foo/bar", {}, env);
 
@@ -295,6 +230,22 @@ describe("Authentication", () => {
 	});
 
 	describe("GET /digest-auth/:qop/:user/:passwd", () => {
+		it("should accept a real MD5 digest response (as sent by curl --digest)", async () => {
+			// Expected value computed independently with Python's hashlib.md5
+			const res = await authentication.request(
+				"/digest-auth/auth/foo/bar",
+				{
+					headers: {
+						Authorization:
+							'Digest username="foo", realm="Fake Realm", nonce="abc123", uri="/digest-auth/auth/foo/bar", qop=auth, nc=00000001, cnonce="0a4f113b", response="36df33a40d487ac5020fcd920d80d011"',
+					},
+				},
+				env,
+			);
+
+			expect(res.status).toBe(200);
+		});
+
 		it("should return 401 without authorization header", async () => {
 			const res = await authentication.request(
 				"/digest-auth/auth/foo/bar",

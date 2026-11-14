@@ -42,6 +42,36 @@ describe("HTTP Methods", () => {
 	});
 
 	describe("POST /post", () => {
+		it("should handle large binary data without failing", async () => {
+			const body = new Uint8Array(300_000);
+			body[0] = 0xff;
+			const res = await httpMethods.request(
+				"/post",
+				{ method: "POST", body },
+				env,
+			);
+
+			expect(res.status).toBe(200);
+			const data = (await res.json()) as { data: string };
+			expect(data.data).toMatch(/^data:application\/octet-stream;base64,/);
+		});
+
+		it("should handle large binary file uploads", async () => {
+			const bytes = new Uint8Array(300_000);
+			bytes[0] = 0xff;
+			const form = new FormData();
+			form.append("file", new File([bytes], "a.bin"));
+			const res = await httpMethods.request(
+				"/post",
+				{ method: "POST", body: form },
+				env,
+			);
+
+			expect(res.status).toBe(200);
+			const data = (await res.json()) as { files: Record<string, string> };
+			expect(data.files["file"]).toMatch(/^data:[^;]*;base64,/);
+		});
+
 		it("should handle binary data", async () => {
 			const binaryData = new Uint8Array([0x01, 0x02, 0x03, 0x81, 0x82, 0x83]);
 			const res = await httpMethods.request(

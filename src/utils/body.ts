@@ -27,8 +27,21 @@ function jsonSafe(
 		JSON.stringify(str);
 		return str;
 	} catch {
-		return `data:${content_type};base64,${btoa(String.fromCharCode(...new Uint8Array(buffer)))}`;
+		return `data:${content_type};base64,${toBase64(new Uint8Array(buffer))}`;
 	}
+}
+
+/**
+ * Base64-encode bytes in chunks; spreading a large array into
+ * String.fromCharCode exceeds the engine's argument limit.
+ */
+function toBase64(bytes: Uint8Array): string {
+	const CHUNK = 0x8000;
+	let binary = "";
+	for (let i = 0; i < bytes.length; i += CHUNK) {
+		binary += String.fromCharCode(...bytes.subarray(i, i + CHUNK));
+	}
+	return btoa(binary);
 }
 
 /**
