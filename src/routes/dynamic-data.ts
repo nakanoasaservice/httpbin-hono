@@ -283,6 +283,7 @@ dynamicData.get("/stream/:n", (c) => {
 	});
 
 	return skipPrettyJSON(
+		c,
 		c.body(stream, 200, { "Content-Type": "application/json" }),
 	);
 });

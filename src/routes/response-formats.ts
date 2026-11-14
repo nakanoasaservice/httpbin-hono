@@ -44,13 +44,14 @@ async function encodedJSON(
 		// workerd's CompressionStream has no brotli. With the default
 		// encodeBody: "automatic", the runtime brotli-compresses the body on send
 		// (brotli_content_encoding is on by default since 2024-04-29).
-		return skipPrettyJSON(new Response(json, { headers }));
+		return skipPrettyJSON(c, new Response(json, { headers }));
 	}
 
 	const compressed = await new Response(
 		new Blob([json]).stream().pipeThrough(new CompressionStream(encoding)),
 	).arrayBuffer();
 	return skipPrettyJSON(
+		c,
 		new Response(compressed, { headers, encodeBody: "manual" }),
 	);
 }

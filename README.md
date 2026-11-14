@@ -117,7 +117,7 @@ httpbin-hono implements every endpoint of [httpbin](https://github.com/postmanla
 - **Seeded random bytes differ from httpbin.** `/bytes` and `/stream-bytes` with the same `seed` always return the same bytes, and the two endpoints agree with each other. The bytes are not the ones Python's `random.seed()` would produce.
 - **`/drip` sends bytes in batches of at least 50 ms** instead of sleeping after every byte, so a large `numbytes` doesn't schedule millions of timers. The stream ends with the last byte instead of a final pause.
 - **`/response-headers` echoes only the query parameters.** httpbin also adds the response's own `Content-Type` and `Content-Length` to the JSON body, recalculating until the length is stable.
-- **`OPTIONS` returns `200` for any path.** Flask answers `OPTIONS` only for existing routes, and adds an `Allow` header.
+- **CORS preflights return `204 No Content` for any path** (via Hono's `cors` middleware), the conventional status for a bodiless response. httpbin returns `200`, answers `OPTIONS` only for existing routes, and lists slightly different methods in `Access-Control-Allow-Methods`.
 - **Digest auth details:** the realm is `Fake Realm` (httpbin uses `me@kennethreitz.com`), and nonces are random UUIDs instead of hashes of the client IP and time.
 - **Cookies set by `/cookies/set` have `SameSite=Lax`.** httpbin sets no `SameSite` attribute.
 

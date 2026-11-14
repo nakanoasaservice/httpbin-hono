@@ -84,6 +84,7 @@ describe("App", () => {
 			);
 			expect(res.headers.get("access-control-allow-credentials")).toBe("true");
 			expect(res.headers.get("access-control-allow-methods")).toBeNull();
+			expect(res.headers.get("vary")).toContain("Origin");
 		});
 
 		it("should allow any origin when no Origin is sent", async () => {
@@ -92,7 +93,7 @@ describe("App", () => {
 			expect(res.headers.get("access-control-allow-origin")).toBe("*");
 		});
 
-		it("should answer preflight requests with 200", async () => {
+		it("should answer preflight requests with 204 No Content", async () => {
 			const res = await app.request(
 				"/post",
 				{
@@ -106,17 +107,18 @@ describe("App", () => {
 				env,
 			);
 
-			expect(res.status).toBe(200);
+			expect(res.status).toBe(204);
+			expect(res.body).toBeNull();
 			expect(res.headers.get("access-control-allow-origin")).toBe(
 				"https://example.com",
 			);
-			expect(res.headers.get("access-control-allow-methods")).toBe(
-				"GET, POST, PUT, DELETE, PATCH, OPTIONS",
-			);
+			expect(res.headers.get("access-control-allow-credentials")).toBe("true");
+			expect(res.headers.get("access-control-allow-methods")).toContain("POST");
 			expect(res.headers.get("access-control-max-age")).toBe("3600");
 			expect(res.headers.get("access-control-allow-headers")).toBe(
-				"X-Custom, Content-Type",
+				"X-Custom,Content-Type",
 			);
+			expect(res.headers.get("vary")).toContain("Origin");
 		});
 	});
 

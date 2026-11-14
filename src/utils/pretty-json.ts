@@ -1,13 +1,20 @@
-import type { MiddlewareHandler } from "hono";
+import type { Context, MiddlewareHandler } from "hono";
 
-const rawResponses = new WeakSet<Response>();
+declare module "hono" {
+	interface ContextVariableMap {
+		skipPrettyJSON: boolean;
+	}
+}
 
 /**
- * Exclude a response from pretty-printing, e.g. a stream or an
+ * Exclude this request's response from pretty-printing, e.g. a stream or an
  * already-compressed body that must not be read and re-serialized.
+ *
+ * A context flag rather than a mark on the Response: Hono rebuilds the
+ * handler's Response when middleware (such as CORS) set headers beforehand.
  */
-export function skipPrettyJSON(response: Response): Response {
-	rawResponses.add(response);
+export function skipPrettyJSON(c: Context, response: Response): Response {
+	c.set("skipPrettyJSON", true);
 	return response;
 }
 
@@ -23,7 +30,7 @@ export function formatJSON(value: unknown): string {
 export const prettyJSON: MiddlewareHandler = async (c, next) => {
 	await next();
 	if (
-		!rawResponses.has(c.res) &&
+		!c.get("skipPrettyJSON") &&
 		c.res.headers.get("Content-Type")?.startsWith("application/json")
 	) {
 		const obj = await c.res.json();
