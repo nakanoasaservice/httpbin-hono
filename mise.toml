@@ -1,2 +1,3 @@
 [tools]
-bun = "1"
+"aqua:pnpm/pnpm" = "12.21.0"
+node = "24"

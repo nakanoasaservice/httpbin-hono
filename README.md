@@ -27,13 +27,13 @@ After deployment, your httpbin service will be available at `https://your-worker
 
 ## Prerequisites
 
-- [Bun](https://bun.sh/) (v1.4 or later)
+- [pnpm](https://pnpm.io/) 12
 - Node.js 24 (used by [Vite+](https://viteplus.dev/) for formatting, linting, type checking and tests)
 
 ## Installation
 
 ```bash
-bun install
+pnpm install
 ```
 
 ## Development
@@ -41,7 +41,7 @@ bun install
 Start the development server:
 
 ```bash
-bun run dev
+pnpm run dev
 ```
 
 The service will be available at `http://localhost:8787` (or the port specified by Wrangler).
@@ -53,7 +53,7 @@ The service will be available at `http://localhost:8787` (or the port specified 
 Deploy to Cloudflare Workers:
 
 ```bash
-bun run deploy
+pnpm run deploy
 ```
 
 ## Type Generation
@@ -61,7 +61,7 @@ bun run deploy
 For generating/synchronizing types based on your Worker configuration, run:
 
 ```bash
-bun run cf-typegen
+pnpm run cf-typegen
 ```
 
 Routes that use bindings (such as `ASSETS`) pass the `Env` as generics when instantiating `Hono`:
@@ -76,13 +76,13 @@ export const images = new Hono<{ Bindings: Env }>();
 Formatting, linting and type checking run through [Vite+](https://viteplus.dev/) (Oxfmt, Oxlint and tsgolint), configured in `vite.config.ts`:
 
 ```bash
-bun run check
+pnpm run check
 ```
 
 Auto-fix issues:
 
 ```bash
-bun run check:fix
+pnpm run check:fix
 ```
 
 ## Testing
@@ -90,7 +90,7 @@ bun run check:fix
 Tests run in the Workers runtime with Vite+ (Vitest) and `@cloudflare/vitest-plugin`:
 
 ```bash
-bun run test
+pnpm run test
 ```
 
 ## API Documentation
