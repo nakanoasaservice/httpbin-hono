@@ -3,29 +3,45 @@ updates:
   - package-ecosystem: "npm"
     directory: "/"
     schedule:
-      interval: "weekly"
-      day: "monday"
+      interval: "daily"
+      time: "08:00"
       timezone: "Asia/Tokyo"
+    # Skip versions published in the last few days (broken releases, hijacked packages).
+    # Security updates are not delayed by cooldown.
+    cooldown:
+      default-days: 3
+      semver-major-days: 14
+    open-pull-requests-limit: 5
     versioning-strategy: "auto"
     labels:
       - "dependencies"
     commit-message:
       prefix: "chore"
       include: "scope"
-    groups:
-      dependencies:
-        patterns:
-          - "*"
+    # The Vite+ toolchain is aliased (vite -> @voidzero-dev/vite-plus-core) and pinned
+    # via pnpm overrides, which Dependabot cannot keep in sync. The AI task updates it.
     ignore:
-      - dependency-name: "*"
-        update-types: ["version-update:semver-major"]
+      - dependency-name: "vite"
+      - dependency-name: "vite-plus"
+      - dependency-name: "vitest"
+    # Major updates are not grouped, so each major lands as its own PR.
+    groups:
+      production-minor-patch:
+        dependency-type: "production"
+        update-types: ["minor", "patch"]
+      development-minor-patch:
+        dependency-type: "development"
+        update-types: ["minor", "patch"]
 
   - package-ecosystem: "github-actions"
     directory: "/"
     schedule:
       interval: "weekly"
       day: "monday"
+      time: "08:00"
       timezone: "Asia/Tokyo"
+    cooldown:
+      default-days: 3
     labels:
       - "dependencies"
       - "github-actions"
@@ -33,6 +49,5 @@ updates:
       prefix: "chore"
       include: "scope"
     groups:
-      dependencies:
-        patterns:
-          - "*"
+      actions-minor-patch:
+        update-types: ["minor", "patch"]
