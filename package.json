@@ -14,7 +14,7 @@
 		"hono": "^4.13.19"
 	},
 	"devDependencies": {
-		"@cloudflare/vitest-plugin": "^1.8.2",
+		"@cloudflare/vitest-plugin": "^1.8.4",
 		"vite": "npm:@voidzero-dev/vite-plus-core@1.6.0",
 		"vite-plus": "1.6.0",
 		"vitest": "5.1.0",
