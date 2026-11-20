@@ -18,7 +18,7 @@
 		"vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000",
 		"vite-plus": "1.7.0",
 		"vitest": "5.1.0",
-		"wrangler": "^4.162.0"
+		"wrangler": "^4.163.0"
 	},
 	"packageManager": "pnpm@12.21.0"
 }
