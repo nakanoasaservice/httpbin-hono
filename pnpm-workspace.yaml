@@ -5,3 +5,5 @@ overrides:
 allowBuilds:
   esbuild: true
   workerd: true
+
+pmOnFail: download

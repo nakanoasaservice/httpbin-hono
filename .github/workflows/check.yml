@@ -23,8 +23,13 @@ jobs:
       - name: Setup Vite+
         uses: voidzero-dev/setup-vp@v1.22.0
         with:
-          node-version: "24"
+          version: "1.7.0"
+          node-version: "24.22.1"
           cache: true
+          run-install: false
+
+      - name: Install dependencies
+        run: pnpm install --frozen-lockfile
 
       - name: Run Check
         run: vp check
