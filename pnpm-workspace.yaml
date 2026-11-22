@@ -6,7 +6,5 @@ allowBuilds:
   esbuild: true
   workerd: true
 
-pmOnFail: download
-
 # Vite+ selects Node from package.json; do not let pnpm override CI matrices.
 runtimeOnFail: ignore
