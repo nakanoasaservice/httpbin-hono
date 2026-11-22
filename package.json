@@ -20,5 +20,11 @@
 		"vitest": "5.1.1",
 		"wrangler": "^4.163.0"
 	},
+	"devEngines": {
+		"runtime": {
+			"name": "node",
+			"version": "24.22.1"
+		}
+	},
 	"packageManager": "pnpm@12.21.0"
 }

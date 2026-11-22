@@ -87,7 +87,7 @@ function weightedChoice(choices: Array<[number, number]>): number {
 			return code;
 		}
 	}
-	// biome-ignore lint/style/noNonNullAssertion: parseCodes never returns an empty array
+	// parseCodes never returns an empty array.
 	return choices.at(-1)![0];
 }
 
