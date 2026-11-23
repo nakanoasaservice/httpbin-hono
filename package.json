@@ -14,11 +14,11 @@
 		"hono": "^4.13.19"
 	},
 	"devDependencies": {
-		"@cloudflare/vitest-plugin": "^1.8.5",
+		"@cloudflare/vitest-plugin": "^1.9.0",
 		"vite": "npm:@voidzero-dev/vite-plus-core@8.3.8000",
 		"vite-plus": "1.7.0",
 		"vitest": "5.1.1",
-		"wrangler": "^4.165.0"
+		"wrangler": "^4.166.0"
 	},
 	"devEngines": {
 		"runtime": {
