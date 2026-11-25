@@ -11,7 +11,7 @@
 		"test": "vp test"
 	},
 	"dependencies": {
-		"hono": "^4.13.19"
+		"hono": "^4.13.20"
 	},
 	"devDependencies": {
 		"@cloudflare/vitest-plugin": "^1.9.0",
